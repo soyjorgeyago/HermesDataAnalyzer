@@ -63,9 +63,8 @@ public class Util {
             return gson.fromJson(gson.toJson(event.getBody().get("Data Section")), DataSection.class);
         } catch (JsonSyntaxException ex) {
             LOG.log(Level.SEVERE, "getDataSectionFromEvent() - Error al intentar obtener un 'Data Section' de un evento", ex.getMessage());
+            return null;
         }
-
-        return null;
     }
 
     public static double distance(double lat1, double lng1, double lat2, double lng2) {
@@ -96,8 +95,7 @@ public class Util {
                 * Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2));
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         // El radio de la Tierra es, aproximadamente, 6.371 Km, es decir, 6.371.000 metros.
-        double dist = 6371000.0d * c;
 
-        return dist;
+        return 6371000.0d * c;
     }
 }

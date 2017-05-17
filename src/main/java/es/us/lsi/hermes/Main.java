@@ -71,7 +71,7 @@ public class Main implements ISmartDriverObserver {
         ANALYZED_VEHICLES.put(id, v);
     }
 
-    public static boolean hasAnalyzedVehicles() {
+    static boolean hasAnalyzedVehicles() {
         return !ANALYZED_VEHICLES.isEmpty();
     }
 
@@ -98,19 +98,20 @@ public class Main implements ISmartDriverObserver {
         public void run() {
             for (Iterator<Map.Entry<String, Vehicle>> it = ANALYZED_VEHICLES.entrySet().iterator(); it.hasNext();) {
                 Map.Entry<String, Vehicle> entry = it.next();
-                LOG.log(Level.FINE, "OblivionRunnable.run() - Al vehículo con id: {0} le quedan {1} segundos antes de ser olvidado.", new Object[]{entry.getValue().getId(), entry.getValue().getOblivionTimeout()});
+                LOG.log(Level.INFO, "OblivionRunnable.run() - Al vehículo con id: {0} le quedan {1} segundos antes de ser olvidado.", new Object[]{entry.getValue().getId(), entry.getValue().getOblivionTimeout()});
                 // Cada vez que es llamado el método, se resta una unidad al tiempo para olvidar los vehículos.
                 entry.getValue().decreaseOblivionTimeout();
+
                 // Comprobamos el 'timeout' de cada vehículo, por si debemos olvidarnos de éste por no tener actividad.
                 if (entry.getValue().getOblivionTimeout() == 0) {
-                    LOG.log(Level.FINE, "OblivionRunnable.run() - Se elimina el vehículo con id: {0} por falta de actividad.", entry.getValue().getId());
+                    LOG.log(Level.INFO, "OblivionRunnable.run() - Se elimina el vehículo con id: {0} por falta de actividad.", entry.getValue().getId());
                     it.remove();
                 }
             }
 
             // Si hay vehículos en análisis, lanzamos el 'producer' para registrar 'streams' que puedan ser consumidos.
             if (Main.hasAnalyzedVehicles()) {
-                LOG.log(Level.FINE, "OblivionRunnable.run() - Hay vehículos en análisis, se producen 'streams' para que puedan ser consumidos por SmartDriver.");
+                LOG.log(Level.INFO, "OblivionRunnable.run() - Hay vehículos en análisis, se producen 'streams' para que puedan ser consumidos por SmartDriver.");
                 SurroundingVehiclesProducer surroundingVehiclesProducer = new SurroundingVehiclesProducer(ANALYZED_VEHICLES.values());
                 surroundingVehiclesProducer.start();
             }
@@ -131,60 +132,69 @@ public class Main implements ISmartDriverObserver {
 
         @Override
         public void run() {
+
             for (Vehicle currentVehicle : ANALYZED_VEHICLES.values()) {
+
                 // Obtenemos la posición más reciente del vehículo.
                 Map.Entry<String, Location> currentVehicleEntry = currentVehicle.getMostRecentHistoricLocationEntry();
 
-                if (currentVehicleEntry != null) {
-                    Location currentVehicleLastPosition = currentVehicleEntry.getValue();
+                if (currentVehicleEntry == null)
+                    continue;
 
-                    // Analizamos los vehículos que ya están en su radio de influencia, por si hay que quitar alguno.
-                    for (String id : currentVehicle.getSurroundingVehicles()) {
-                        Vehicle surroundingVehicle = Main.getAnalyzedVehicle(id);
+                Location currentVehicleLastPosition = currentVehicleEntry.getValue();
 
-                        // Obtenemos la posición más reciente del vehículo circundante, si la tuviera.
-                        Map.Entry<String, Location> surroundingVehicleEntry = surroundingVehicle.getMostRecentHistoricLocationEntry();
-                        if (surroundingVehicleEntry != null) {
-                            Location surroundingVehicleLastPosition = (Location) surroundingVehicleEntry.getValue();
-                            // Calculamos la distancia con el método rápido.
-                            double distance = Util.distance(currentVehicleLastPosition.getLatitude(), currentVehicleLastPosition.getLongitude(), surroundingVehicleLastPosition.getLatitude(), surroundingVehicleLastPosition.getLongitude());
+                // Analizamos los vehículos que ya están en su radio de influencia, por si hay que quitar alguno.
+                for (String id : currentVehicle.getSurroundingVehicles()) {
+                    Vehicle surroundingVehicle = Main.getAnalyzedVehicle(id);
 
-                            if (distance > DIAMETER) {
-                                LOG.log(Level.FINE, "AnalyzeVehicles.run() - Los vehículos han dejado de influirse ({0} - {1})", new Object[]{currentVehicle.getId(), surroundingVehicle.getId()});
+                    // Obtenemos la posición más reciente del vehículo circundante, si la tuviera.
+                    Map.Entry<String, Location> surroundingVehicleEntry = surroundingVehicle.getMostRecentHistoricLocationEntry();
+                    if (surroundingVehicleEntry == null)
+                        continue;
 
-                                // Eliminamos el identificador del vehículo, del conjunto de vehículos que le influyen.
-                                currentVehicle.getSurroundingVehicles().remove(surroundingVehicle.getId());
-                                // Del mismo modo, también eliminamos el identificador del vehículo actual del conjunto del otro vehículo.
-                                surroundingVehicle.getSurroundingVehicles().remove(currentVehicle.getId());
-                            }
-                        } 
-                    }
+                    Location surroundingVehicleLastPosition = surroundingVehicleEntry.getValue();
+                    // Calculamos la distancia con el método rápido.
+                    double distance = Util.distance(currentVehicleLastPosition.getLatitude(), currentVehicleLastPosition.getLongitude(), surroundingVehicleLastPosition.getLatitude(), surroundingVehicleLastPosition.getLongitude());
+
+                    if (distance <= DIAMETER)
+                        continue;
+
+                    LOG.log(Level.INFO, "AnalyzeVehicles.run() - Los vehículos han dejado de influirse ({0} - {1})", new Object[]{currentVehicle.getId(), surroundingVehicle.getId()});
+
+                    // Eliminamos el identificador del vehículo, del conjunto de vehículos que le influyen.
+                    currentVehicle.getSurroundingVehicles().remove(surroundingVehicle.getId());
+                    // Del mismo modo, también eliminamos el identificador del vehículo actual del conjunto del otro vehículo.
+                    surroundingVehicle.getSurroundingVehicles().remove(currentVehicle.getId());
                 }
 
                 for (Vehicle otherVehicle : ANALYZED_VEHICLES.values()) {
                     // Analizamos su relación con los otros vehículos que no están en su conjunto de vehículos cercanos.
-                    if (!(currentVehicle.getId().equals(otherVehicle.getId())
-                            && !(currentVehicle.getSurroundingVehicles().contains(otherVehicle.getId())))) {
+                    if (currentVehicle.getId().equals(otherVehicle.getId())
+                            && !currentVehicle.getSurroundingVehicles().contains(otherVehicle.getId()))
+                        continue;
 
-                        // Obtenemos la ubicación más reciente del vehículo actual.
-                        Location currentVehicleLastPosition = currentVehicleEntry.getValue();
+                    // Obtenemos la ubicación más reciente del vehículo actual.
+                    currentVehicleLastPosition = currentVehicleEntry.getValue();
 
-                        // Obtenemos la ubicación más reciente del otro vehículo.
-                        Map.Entry<String, Location> otherVehicleEntry = currentVehicle.getMostRecentHistoricLocationEntry();
-                        if (otherVehicleEntry != null) {
-                            Location otherVehicleLastPosition = (Location) otherVehicleEntry.getValue();
+                    // Obtenemos la ubicación más reciente del otro vehículo.
+                    Map.Entry<String, Location> otherVehicleEntry = currentVehicle.getMostRecentHistoricLocationEntry();
+                    if (otherVehicleEntry == null)
+                        continue;
 
-                            // Calculamos la distancia con el método rápido.
-                            double distance = Util.distance(currentVehicleLastPosition.getLatitude(), currentVehicleLastPosition.getLongitude(), otherVehicleLastPosition.getLatitude(), otherVehicleLastPosition.getLongitude());
+                    Location otherVehicleLastPosition = otherVehicleEntry.getValue();
 
-                            // Están en su zona de influencia. Los 2 vehículos se influyen.
-                            if (distance <= DIAMETER) {
-                                LOG.log(Level.FINE, "AnalyzeVehicles.run() - Identificadores de los vehículos que se influyen ({0} - {1})", new Object[]{currentVehicle.getId(), otherVehicle.getId()});
-                                currentVehicle.addSurroundingVehicle(otherVehicle.getId());
-                                otherVehicle.addSurroundingVehicle(currentVehicle.getId());
-                            }
-                        }
-                    }
+                    // Calculamos la distancia con el método rápido.
+                    double distance = Util.distance(currentVehicleLastPosition.getLatitude(), currentVehicleLastPosition.getLongitude(),
+                            otherVehicleLastPosition.getLatitude(), otherVehicleLastPosition.getLongitude());
+
+                    // Check if it meets our proximity requirements
+                    if (distance > DIAMETER)
+                        continue;
+
+                    // Están en su zona de influencia. Los 2 vehículos se influyen.
+                    LOG.log(Level.INFO, "AnalyzeVehicles.run() - Identificadores de los vehículos que se influyen ({0} - {1})", new Object[]{currentVehicle.getId(), otherVehicle.getId()});
+                    currentVehicle.addSurroundingVehicle(otherVehicle.getId());
+                    otherVehicle.addSurroundingVehicle(currentVehicle.getId());
                 }
             }
         }

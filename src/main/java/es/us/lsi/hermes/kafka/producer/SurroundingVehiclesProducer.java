@@ -38,9 +38,8 @@ public class SurroundingVehiclesProducer extends Thread {
             String json = gson.toJson(v);
             long id = KAFKA_RECORD_ID.getAndIncrement();
             LOG.log(Level.FINE, "run() - Topic: " + TOPIC_SURROUNDING_VEHICLES + " para el vehículo con id: {0}", v.getId());
-            producer.send(new ProducerRecord<>(TOPIC_SURROUNDING_VEHICLES,
-                    id,
-                    json), new KafkaCallBack(System.currentTimeMillis(), id));
+            producer.send(new ProducerRecord<>(TOPIC_SURROUNDING_VEHICLES, id, json),
+                    new KafkaCallBack(System.currentTimeMillis(), id));
         }
     }
 
@@ -58,7 +57,7 @@ public class SurroundingVehiclesProducer extends Thread {
         public void onCompletion(RecordMetadata metadata, Exception exception) {
             if (metadata != null) {
                 long elapsedTime = System.currentTimeMillis() - startTime;
-                LOG.log(Level.FINE, "onCompletion() - Mensaje enviado correctamente a Kafka\n - Key: {0}\n - Partición: {1}\n - Offset: {2}\n - Tiempo transcurrido: {3} ms", new Object[]{key, metadata.partition(), metadata.offset(), elapsedTime});
+                LOG.log(Level.INFO, "onCompletion() - Mensaje enviado correctamente a Kafka\n - Key: {0}\n - Partición: {1}\n - Offset: {2}\n - Tiempo transcurrido: {3} ms", new Object[]{key, metadata.partition(), metadata.offset(), elapsedTime});
             } else {
                 LOG.log(Level.SEVERE, "onCompletion() - No se ha podido enviar a Kafka", exception);
             }

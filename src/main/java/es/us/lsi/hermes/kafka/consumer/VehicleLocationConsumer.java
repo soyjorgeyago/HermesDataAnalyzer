@@ -18,7 +18,7 @@ import ztreamy.Event;
 public class VehicleLocationConsumer extends ShutdownableThread {
 
     private static final Logger LOG = Logger.getLogger(VehicleLocationConsumer.class.getName());
-    public static final String TOPIC_VEHICLE_LOCATION = "VehicleLocation";
+    private static final String TOPIC_VEHICLE_LOCATION = "VehicleLocation";
 
     private final KafkaConsumer<Long, String> consumer;
     private final long pollTimeout;
@@ -42,35 +42,38 @@ public class VehicleLocationConsumer extends ShutdownableThread {
 
             // Obtenemos el conjunto de eventos que se hayan recibido desde la última consulta.
             Event events[] = Util.getEventsFromJson(record.value());
-            if (events != null && events.length > 0) {
-                for (Event event : events) {
-                    LOG.log(Level.FINE, "VehicleLocationConsumer.doWork() - VEHICLE LOCATION {0} con event-id {1}", new Object[]{event.getTimestamp(), event.getEventId()});
-
-                    // Obtenemos la ubicación del vehículo.
-                    Location vehicleLocation = Util.getVehicleLocationFromEvent(event);
-                    if (vehicleLocation != null) {
-                        // Tendremos un 'HashMap' con los vehículos de los que se tenga información más actualizada, es decir, sólo los que se estén moviendo.
-                        // Vemos si es un vehículo que ya tenemos en análisis. Obtenemos el 'sourceId' del evento, que será el indicador unívoco del vehículo.
-                        Vehicle analyzedVehicle = Main.getAnalyzedVehicle(event.getSourceId());
-                        if (analyzedVehicle == null) {
-                            // Es un vehículo nuevo.
-                            LOG.log(Level.FINE, "VehicleLocationConsumer.doWork() - Nuevo vehículo: id={0}", event.getSourceId());
-                            analyzedVehicle = new Vehicle(event.getSourceId(),
-                                    Integer.parseInt(Main.getKafkaProperties().getProperty("vehicleLocation.historic.size", "10")));
-                            Main.addAnalyzedVehicle(event.getSourceId(), analyzedVehicle);
-                        }
-                        // Le añadimos un registro más a su histórico de localizaciones.
-                        analyzedVehicle.addHistoricLocation(vehicleLocation.getTimeStamp(), vehicleLocation);
-                        // Iniciamos de nuevo el contador de descarte del vehículo.
-                        analyzedVehicle.resetOblivionTimeout();
-                        
-                        // Notificamos al observador que se ha habido actualización de datos.
-                        // FIXME: ¿Quitar?
-                        observer.update();
-                    }
-                }
-            } else {
+            if (events == null || events.length <= 0) {
                 LOG.log(Level.SEVERE, "VehicleLocationConsumer.doWork() - Error al obtener los eventos de tipo 'Vehicle Location' del JSON recibido: {0}", record.value());
+                continue;
+            }
+
+            for (Event event : events) {
+                LOG.log(Level.FINE, "VehicleLocationConsumer.doWork() - VEHICLE LOCATION {0} con event-id {1}", new Object[]{event.getTimestamp(), event.getEventId()});
+
+                // Obtenemos la ubicación del vehículo.
+                Location vehicleLocation = Util.getVehicleLocationFromEvent(event);
+                if (vehicleLocation == null)
+                    continue;
+
+                // Tendremos un 'HashMap' con los vehículos de los que se tenga información más actualizada, es decir, sólo los que se estén moviendo.
+                // Vemos si es un vehículo que ya tenemos en análisis. Obtenemos el 'sourceId' del evento, que será el indicador unívoco del vehículo.
+                Vehicle analyzedVehicle = Main.getAnalyzedVehicle(event.getSourceId());
+                if (analyzedVehicle == null) {
+                    // Es un vehículo nuevo.
+                    LOG.log(Level.FINE, "VehicleLocationConsumer.doWork() - Nuevo vehículo: id={0}", event.getSourceId());
+                    analyzedVehicle = new Vehicle(event.getSourceId(), Integer.parseInt(Main.getKafkaProperties()
+                            .getProperty("vehicleLocation.historic.size", "10")));
+                    Main.addAnalyzedVehicle(event.getSourceId(), analyzedVehicle);
+                }
+
+                // Le añadimos un registro más a su histórico de localizaciones.
+                analyzedVehicle.addHistoricLocation(vehicleLocation.getTimeStamp(), vehicleLocation);
+                // Iniciamos de nuevo el contador de descarte del vehículo.
+                analyzedVehicle.resetOblivionTimeout();
+
+                // Notificamos al observador que se ha habido actualización de datos.
+                // FIXME: ¿Quitar?
+                observer.update();
             }
         }
     }

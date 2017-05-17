@@ -33,8 +33,7 @@ public class Vehicle {
             @Override
             protected boolean removeEldestEntry(Map.Entry<String, Location> eldest) {
                 return this.size() > historySize;
-            }
-        };
+            }};
         this.surroundingVehicles = new HashSet<>();
     }
 
@@ -55,11 +54,7 @@ public class Vehicle {
     }
 
     public Map.Entry<String, Location> getMostRecentHistoricLocationEntry() {
-        if (!historicLocations.isEmpty()) {
-            return historicLocations.entrySet().iterator().next();
-        } else {
-            return null;
-        }
+        return historicLocations.isEmpty() ? null : historicLocations.entrySet().iterator().next();
     }
 
     public void addSurroundingVehicle(String id) {
@@ -91,9 +86,9 @@ public class Vehicle {
     }
 
     public synchronized List<SurroundingVehicle> getSurroundingVehiclesList() {
-        List result = new ArrayList();
+        List<SurroundingVehicle> result = new ArrayList<>();
 
-        for (String surroundingVehicleId : surroundingVehicles) {
+        for (String surroundingVehicleId : surroundingVehicles) {       //TODO Comprobar el fix
             // FIX
             Vehicle v = Main.getAnalyzedVehicle(surroundingVehicleId);
             if (v != null) {
@@ -111,7 +106,7 @@ public class Vehicle {
         private Double latitude;
         private Double longitude;
 
-        public SurroundingVehicle(Vehicle v) {
+        private SurroundingVehicle(Vehicle v) {
             this.id = v.getId();
             this.score = v.getScore();
             Map.Entry<String, Location> mrl = v.getMostRecentHistoricLocationEntry();

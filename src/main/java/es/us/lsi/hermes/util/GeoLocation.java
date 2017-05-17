@@ -165,8 +165,7 @@ public class GeoLocation {
 
         double minLon, maxLon;
         if (minLat > MIN_LAT && maxLat < MAX_LAT) {
-            double deltaLon = Math.asin(Math.sin(radDist)
-                    / Math.cos(radLat));
+            double deltaLon = Math.asin(Math.sin(radDist) / Math.cos(radLat));
             minLon = radLon - deltaLon;
             if (minLon < MIN_LON) {
                 minLon += 2d * Math.PI;

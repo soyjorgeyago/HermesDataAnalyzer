@@ -9,53 +9,53 @@ import java.util.List;
 public class DataSection implements Serializable {
 
     @SerializedName("medianSpeed")
-@Expose
-private Double medianSpeed;
-@SerializedName("roadSection")
-@Expose
-private List<RoadSection> roadSection = new ArrayList<RoadSection>();
-@SerializedName("standardDeviationSpeed")
-@Expose
-private Double standardDeviationSpeed;
-@SerializedName("averageRR")
-@Expose
-private Double averageRR;
-@SerializedName("averageHeartRate")
-@Expose
-private Double averageHeartRate;
-@SerializedName("standardDeviationRR")
-@Expose
-private Double standardDeviationRR;
-@SerializedName("averageDeceleration")
-@Expose
-private Double averageDeceleration;
-@SerializedName("numHighDecelerations")
-@Expose
-private Integer numHighDecelerations;
-@SerializedName("averageAcceleration")
-@Expose
-private Double averageAcceleration;
-@SerializedName("maxSpeed")
-@Expose
-private Double maxSpeed;
-@SerializedName("rrSection")
-@Expose
-private List<Integer> rrSection = new ArrayList<Integer>();
-@SerializedName("numHighAccelerations")
-@Expose
-private Integer numHighAccelerations;
-@SerializedName("pke")
-@Expose
-private Double pke;
-@SerializedName("standardDeviationHeartRate")
-@Expose
-private Double standardDeviationHeartRate;
-@SerializedName("averageSpeed")
-@Expose
-private Double averageSpeed;
-@SerializedName("minSpeed")
-@Expose
-private Double minSpeed;
+    @Expose
+    private Double medianSpeed;
+    @SerializedName("roadSection")
+    @Expose
+    private List<RoadSection> roadSection = new ArrayList<RoadSection>();
+    @SerializedName("standardDeviationSpeed")
+    @Expose
+    private Double standardDeviationSpeed;
+    @SerializedName("averageRR")
+    @Expose
+    private Double averageRR;
+    @SerializedName("averageHeartRate")
+    @Expose
+    private Double averageHeartRate;
+    @SerializedName("standardDeviationRR")
+    @Expose
+    private Double standardDeviationRR;
+    @SerializedName("averageDeceleration")
+    @Expose
+    private Double averageDeceleration;
+    @SerializedName("numHighDecelerations")
+    @Expose
+    private Integer numHighDecelerations;
+    @SerializedName("averageAcceleration")
+    @Expose
+    private Double averageAcceleration;
+    @SerializedName("maxSpeed")
+    @Expose
+    private Double maxSpeed;
+    @SerializedName("rrSection")
+    @Expose
+    private List<Integer> rrSection = new ArrayList<Integer>();
+    @SerializedName("numHighAccelerations")
+    @Expose
+    private Integer numHighAccelerations;
+    @SerializedName("pke")
+    @Expose
+    private Double pke;
+    @SerializedName("standardDeviationHeartRate")
+    @Expose
+    private Double standardDeviationHeartRate;
+    @SerializedName("averageSpeed")
+    @Expose
+    private Double averageSpeed;
+    @SerializedName("minSpeed")
+    @Expose
+    private Double minSpeed;
 
     public Double getMedianSpeed() {
         return medianSpeed;

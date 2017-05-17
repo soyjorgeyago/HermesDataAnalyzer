@@ -18,11 +18,9 @@ public class VehicleSerializer implements JsonSerializer<Vehicle> {
         JsonObject jsonObject = new JsonObject();
         jsonObject.addProperty("id", vehicle.getId());
         jsonObject.addProperty("score", vehicle.getScore());
-        Type historicLocationsListType = new TypeToken<ArrayList<Location>>() {
-        }.getType();
+        Type historicLocationsListType = new TypeToken<ArrayList<Location>>() { }.getType();
         jsonObject.add("historicLocations", gson.toJsonTree(vehicle.getHistoricLocationsList(), historicLocationsListType));
-        Type surroundingVehiclesListType = new TypeToken<ArrayList<Vehicle.SurroundingVehicle>>() {
-        }.getType();
+        Type surroundingVehiclesListType = new TypeToken<ArrayList<Vehicle.SurroundingVehicle>>() { }.getType();
         jsonObject.add("surroundingVehicles", gson.toJsonTree(vehicle.getSurroundingVehiclesList(), surroundingVehiclesListType));
         return jsonObject;
     }
