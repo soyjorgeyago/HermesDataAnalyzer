@@ -1,0 +1,17 @@
+bootstrap.servers=your_Kafka_server_IP:Port
+
+# Consumer
+group.id=your_consumer_group_id
+key.deserializer=key_deserializer
+value.deserializer=value_deserializer
+consumer.poll.timeout.ms=consumer_poll_timeout_in_milliseconds
+
+# Producer
+client.id=your_client_producer_id
+key.serializer=key_serializer
+value.serializer=value_serializer
+
+# Analysis
+vehicleLocation.historic.size=amount_of_previous_path_locations_to_be_considered
+vehicle.oblivion.timeout.s=seconds_before_excluding_a_non_moving_vehicle
+
