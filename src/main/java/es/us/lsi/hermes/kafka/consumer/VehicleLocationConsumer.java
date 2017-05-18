@@ -35,44 +35,45 @@ public class VehicleLocationConsumer extends ShutdownableThread {
     @Override
     public void doWork() {
         consumer.subscribe(Collections.singletonList(TOPIC_VEHICLE_LOCATION));
-        // El 'consumer' para los 'Vehicle Locations' hará consultas cada 'pollTimeout' milisegundos, para traerse los datos que hayan llegado a Kafka.
+
+        // The 'consumer' for each 'Vehicle Locations' will poll every 'pollTimeout' milisegundos, to get all the data received by Kafka.
         ConsumerRecords<Long, String> records = consumer.poll(pollTimeout);
         for (ConsumerRecord<Long, String> record : records) {
-            LOG.log(Level.FINE, "VehicleLocationConsumer.doWork() - {0}: {1} [{2}] con offset {3}", new Object[]{record.topic(), Constants.dfISO8601.format(record.timestamp()), record.key(), record.offset()});
+            LOG.log(Level.FINE, "VehicleLocationConsumer.doWork() - {0}: {1} [{2}] with offset {3}", new Object[]{record.topic(), Constants.dfISO8601.format(record.timestamp()), record.key(), record.offset()});
 
-            // Obtenemos el conjunto de eventos que se hayan recibido desde la última consulta.
+            // Get the data since the last poll and process it
             Event events[] = Util.getEventsFromJson(record.value());
             if (events == null || events.length <= 0) {
-                LOG.log(Level.SEVERE, "VehicleLocationConsumer.doWork() - Error al obtener los eventos de tipo 'Vehicle Location' del JSON recibido: {0}", record.value());
+                LOG.log(Level.SEVERE, "VehicleLocationConsumer.doWork() - Error obtaining 'Vehicle Location' events from the JSON received: {0}", record.value());
                 continue;
             }
 
             for (Event event : events) {
-                LOG.log(Level.FINE, "VehicleLocationConsumer.doWork() - VEHICLE LOCATION {0} con event-id {1}", new Object[]{event.getTimestamp(), event.getEventId()});
+                LOG.log(Level.FINE, "VehicleLocationConsumer.doWork() - VEHICLE LOCATION {0} with event-id {1}", new Object[]{event.getTimestamp(), event.getEventId()});
 
-                // Obtenemos la ubicación del vehículo.
+                // Get the vehicle location.
                 Location vehicleLocation = Util.getVehicleLocationFromEvent(event);
                 if (vehicleLocation == null)
                     continue;
 
-                // Tendremos un 'HashMap' con los vehículos de los que se tenga información más actualizada, es decir, sólo los que se estén moviendo.
-                // Vemos si es un vehículo que ya tenemos en análisis. Obtenemos el 'sourceId' del evento, que será el indicador unívoco del vehículo.
+                // A 'HashMap' will store the vehicles with the most updated information, in essence those who are moving
                 Vehicle analyzedVehicle = Main.getAnalyzedVehicle(event.getSourceId());
+
+                // After getting searching for the vehicle with its sourceId, process and store in case it doesn't exists
                 if (analyzedVehicle == null) {
-                    // Es un vehículo nuevo.
-                    LOG.log(Level.FINE, "VehicleLocationConsumer.doWork() - Nuevo vehículo: id={0}", event.getSourceId());
+                    LOG.log(Level.FINE, "VehicleLocationConsumer.doWork() - New vehicle: id={0}", event.getSourceId());
                     analyzedVehicle = new Vehicle(event.getSourceId(), Integer.parseInt(Main.getKafkaProperties()
                             .getProperty("vehicleLocation.historic.size", "10")));
                     Main.addAnalyzedVehicle(event.getSourceId(), analyzedVehicle);
                 }
 
-                // Le añadimos un registro más a su histórico de localizaciones.
+                // Add a record to the vehicle's location history
                 analyzedVehicle.addHistoricLocation(vehicleLocation.getTimeStamp(), vehicleLocation);
-                // Iniciamos de nuevo el contador de descarte del vehículo.
+                // Reset the "forget the vehicle if inactive" timeout
                 analyzedVehicle.resetOblivionTimeout();
 
-                // Notificamos al observador que se ha habido actualización de datos.
-                // FIXME: ¿Quitar?
+                // Notify the observer about data changes
+                // FIXME: Remove?       <- This triggers the surrounding analysis
                 observer.update();
             }
         }

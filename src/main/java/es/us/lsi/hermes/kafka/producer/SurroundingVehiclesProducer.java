@@ -34,10 +34,12 @@ public class SurroundingVehiclesProducer extends Thread {
         KafkaProducer<Long, String> producer = new KafkaProducer<>(Main.getKafkaProperties());
 
         // Analizamos cuáles son los vehículos cercanos entre sí y lo publicamos.
+
+        System.out.println("SurroundingProducer: " + vehicles.size());
         for (Vehicle v : vehicles) {
             String json = gson.toJson(v);
             long id = KAFKA_RECORD_ID.getAndIncrement();
-            LOG.log(Level.FINE, "run() - Topic: " + TOPIC_SURROUNDING_VEHICLES + " para el vehículo con id: {0}", v.getId());
+            LOG.log(Level.FINE, "run() - Topic: " + TOPIC_SURROUNDING_VEHICLES + " for the Vehicle with id: {0}", v.getId());
             producer.send(new ProducerRecord<>(TOPIC_SURROUNDING_VEHICLES, id, json),
                     new KafkaCallBack(System.currentTimeMillis(), id));
         }
@@ -48,7 +50,7 @@ public class SurroundingVehiclesProducer extends Thread {
         private final long startTime;
         private final long key;
 
-        public KafkaCallBack(long startTime, long key) {
+        KafkaCallBack(long startTime, long key) {
             this.startTime = startTime;
             this.key = key;
         }
@@ -57,7 +59,7 @@ public class SurroundingVehiclesProducer extends Thread {
         public void onCompletion(RecordMetadata metadata, Exception exception) {
             if (metadata != null) {
                 long elapsedTime = System.currentTimeMillis() - startTime;
-                LOG.log(Level.INFO, "onCompletion() - Mensaje enviado correctamente a Kafka\n - Key: {0}\n - Partición: {1}\n - Offset: {2}\n - Tiempo transcurrido: {3} ms", new Object[]{key, metadata.partition(), metadata.offset(), elapsedTime});
+                LOG.log(Level.FINE, "onCompletion() - Mensaje enviado correctamente a Kafka\n - Key: {0}\n - Partición: {1}\n - Offset: {2}\n - Tiempo transcurrido: {3} ms", new Object[]{key, metadata.partition(), metadata.offset(), elapsedTime});
             } else {
                 LOG.log(Level.SEVERE, "onCompletion() - No se ha podido enviar a Kafka", exception);
             }
