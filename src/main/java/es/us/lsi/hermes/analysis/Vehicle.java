@@ -85,7 +85,7 @@ public class Vehicle {
         return surroundingVehicles;
     }
 
-    public synchronized List<SurroundingVehicle> getSurroundingVehiclesList() {
+    public List<SurroundingVehicle> getSurroundingVehiclesList() {
         List<SurroundingVehicle> result = new ArrayList<>();
 
         for (String surroundingVehicleId : surroundingVehicles) {       //TODO Comprobar el fix

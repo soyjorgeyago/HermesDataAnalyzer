@@ -68,10 +68,6 @@ public class Main implements ISmartDriverObserver {
         ANALYZED_VEHICLES.put(id, v);
     }
 
-    static boolean hasAnalyzedVehicles() {
-        return !ANALYZED_VEHICLES.isEmpty();
-    }
-
     public static Vehicle getAnalyzedVehicle(String id) {
         return ANALYZED_VEHICLES.get(id);
     }
@@ -107,7 +103,7 @@ public class Main implements ISmartDriverObserver {
             }
 
             // Si hay vehículos en análisis, lanzamos el 'producer' para registrar 'streams' que puedan ser consumidos.
-            if (Main.hasAnalyzedVehicles()) {
+            if (!ANALYZED_VEHICLES.isEmpty()) {
                 LOG.log(Level.FINE, "OblivionRunnable.run() - Hay vehículos en análisis, se producen 'streams' para que puedan ser consumidos por SmartDriver.");
                 SurroundingVehiclesProducer surroundingVehiclesProducer = new SurroundingVehiclesProducer(ANALYZED_VEHICLES.values());
                 surroundingVehiclesProducer.start();
@@ -142,7 +138,7 @@ public class Main implements ISmartDriverObserver {
 
                 // Analizamos los vehículos que ya están en su radio de influencia, por si hay que quitar alguno.
                 for (String id : currentVehicle.getSurroundingVehicles()) {
-                    Vehicle surroundingVehicle = Main.getAnalyzedVehicle(id);
+                    Vehicle surroundingVehicle = ANALYZED_VEHICLES.get(id);
 
                     // Obtenemos la posición más reciente del vehículo circundante, si la tuviera.
                     Map.Entry<String, Location> surroundingVehicleEntry = surroundingVehicle.getMostRecentHistoricLocationEntry();
