@@ -3,28 +3,19 @@ package es.us.lsi.hermes;
 import es.us.lsi.hermes.analysis.Vehicle;
 import es.us.lsi.hermes.kafka.consumer.DataSectionConsumer;
 import es.us.lsi.hermes.kafka.consumer.VehicleLocationConsumer;
+import es.us.lsi.hermes.kafka.producer.ActiveVehiclesProducer;
 import es.us.lsi.hermes.kafka.producer.SurroundingVehiclesProducer;
 import es.us.lsi.hermes.smartDriver.Location;
 import es.us.lsi.hermes.util.Util;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Main implements ISmartDriverObserver {
 
     private static final Logger LOG = Logger.getLogger(Main.class.getName());
-
-    // Valores para la configuración de los 'consumers' y 'producers' de Kafka.
-    private static Properties kafkaProperties;
 
     // Temporizador encargado de 'olvidar' los vehículos que no tengan actividad en el tiempo establecido en la propiedad 'vehicle.oblivion.timeout.s'
     private static final ScheduledExecutorService OBLIVION_SCHEDULER = Executors.newScheduledThreadPool(1);
@@ -35,16 +26,7 @@ public class Main implements ISmartDriverObserver {
     public static void main(String[] args) {
         LOG.log(Level.INFO, "main() - Cargar la configuración");
 
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        try {
-            InputStream input = classLoader.getResourceAsStream("Kafka.properties");
-            kafkaProperties = new Properties();
-            kafkaProperties.load(input);
-        } catch (IOException ex) {
-            LOG.log(Level.SEVERE, "main() - Error al cargar el archivo de propiedades de Kafka", ex);
-        }
-
-        long pollTimeout = Long.parseLong(kafkaProperties.getProperty("consumer.poll.timeout.ms", "5000"));
+        long pollTimeout = Long.parseLong(Kafka.getKafkaDataStorageProperties().getProperty("consumer.poll.timeout.ms", "5000"));
         LOG.log(Level.INFO, "main() - Los ''consumers'' de Kafka harán sondeos para ver si hay nuevos datos cada {0} milisegundos", pollTimeout);
 
         LOG.log(Level.INFO, "main() - Inicialización del consumidor de 'Vehicle Location' de Kafka");
@@ -58,10 +40,16 @@ public class Main implements ISmartDriverObserver {
 
         LOG.log(Level.INFO, "main() - Inicialización del temporizador de olvido de vehículos que no tengan actividad");
         OBLIVION_SCHEDULER.scheduleAtFixedRate(new OblivionRunnable(), 1, 1, TimeUnit.SECONDS);
-    }
 
-    public static Properties getKafkaProperties() {
-        return kafkaProperties;
+        ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+        scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                if (!ANALYZED_VEHICLES.isEmpty()) {
+                    new ActiveVehiclesProducer().start();
+                }
+            }
+        }, 5, 1, TimeUnit.SECONDS);
     }
 
     public static void addAnalyzedVehicle(String id, Vehicle v) {
@@ -70,6 +58,10 @@ public class Main implements ISmartDriverObserver {
 
     public static Vehicle getAnalyzedVehicle(String id) {
         return ANALYZED_VEHICLES.get(id);
+    }
+
+    public static ConcurrentHashMap<String, Vehicle> getAnalyzedVehicles() {
+        return ANALYZED_VEHICLES;
     }
 
     @Override

@@ -6,7 +6,7 @@ public class Location implements Serializable {
 
     private String timeStamp;
     private Double longitude;
-    private Integer score;
+    private Integer stress;
     private Double latitude;
     private Double speed;
     private Integer accuracy;
@@ -27,12 +27,12 @@ public class Location implements Serializable {
         this.longitude = longitude;
     }
 
-    public Integer getScore() {
-        return score;
+    public Integer getStress() {
+        return stress;
     }
 
-    public void setScore(Integer score) {
-        this.score = score;
+    public void setStress(Integer stress) {
+        this.stress = stress;
     }
 
     public Double getLatitude() {

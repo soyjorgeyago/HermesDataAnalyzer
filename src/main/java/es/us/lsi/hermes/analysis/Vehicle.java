@@ -1,5 +1,6 @@
 package es.us.lsi.hermes.analysis;
 
+import es.us.lsi.hermes.Kafka;
 import es.us.lsi.hermes.Main;
 import es.us.lsi.hermes.smartDriver.Location;
 import java.util.ArrayList;
@@ -12,7 +13,7 @@ import java.util.Set;
 public class Vehicle {
 
     private final String id;
-    private int score;
+    private int stress;
     private final LinkedHashMap<String, Location> historicLocations;
     private final Set<String> surroundingVehicles;
     private Integer oblivionTimeout;
@@ -27,8 +28,8 @@ public class Vehicle {
      */
     public Vehicle(String id, final Integer historySize) {
         this.id = id;
-        this.score = 0;
-        this.oblivionTimeout = Integer.parseInt(Main.getKafkaProperties().getProperty("vehicle.oblivion.timeout.s", "60"));
+        this.stress = 0;
+        this.oblivionTimeout = Integer.parseInt(Kafka.getKafkaDataStorageProperties().getProperty("vehicle.oblivion.timeout.s", "60"));
         this.historicLocations = new LinkedHashMap<String, Location>() {
             @Override
             protected boolean removeEldestEntry(Map.Entry<String, Location> eldest) {
@@ -46,7 +47,7 @@ public class Vehicle {
     }
 
     public void resetOblivionTimeout() {
-        oblivionTimeout = Integer.parseInt(Main.getKafkaProperties().getProperty("vehicle.oblivion.timeout.s", "60"));
+        oblivionTimeout = Integer.parseInt(Kafka.getKafkaDataStorageProperties().getProperty("vehicle.oblivion.timeout.s", "60"));
     }
 
     public void addHistoricLocation(String timeStamp, Location location) {
@@ -65,12 +66,11 @@ public class Vehicle {
         return id;
     }
 
-    public int getScore() {
-        return score;
+    public int getStress() {
+        return stress;
     }
-
-    public void setScore(int score) {
-        this.score = score;
+    public void setStress(int stress) {
+        this.stress = stress;
     }
 
     public LinkedHashMap<String, Location> getHistoricLocations() {
@@ -102,13 +102,13 @@ public class Vehicle {
     public class SurroundingVehicle {
 
         private String id;
-        private int score;
+        private int stress;
         private Double latitude;
         private Double longitude;
 
         private SurroundingVehicle(Vehicle v) {
             this.id = v.getId();
-            this.score = v.getScore();
+            this.stress = v.getStress();
             Map.Entry<String, Location> mrl = v.getMostRecentHistoricLocationEntry();
             this.latitude = mrl.getValue().getLatitude();
             this.longitude = mrl.getValue().getLongitude();
@@ -122,12 +122,11 @@ public class Vehicle {
             this.id = id;
         }
 
-        public int getScore() {
-            return score;
+        public int getStress() {
+            return stress;
         }
-
-        public void setScore(int score) {
-            this.score = score;
+        public void setStress(int stress) {
+            this.stress = stress;
         }
 
         public Double getLatitude() {

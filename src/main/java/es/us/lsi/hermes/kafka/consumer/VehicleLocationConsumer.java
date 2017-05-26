@@ -1,6 +1,7 @@
 package es.us.lsi.hermes.kafka.consumer;
 
 import es.us.lsi.hermes.ISmartDriverObserver;
+import es.us.lsi.hermes.Kafka;
 import es.us.lsi.hermes.util.Util;
 import es.us.lsi.hermes.Main;
 import es.us.lsi.hermes.analysis.Vehicle;
@@ -18,7 +19,6 @@ import ztreamy.Event;
 public class VehicleLocationConsumer extends ShutdownableThread {
 
     private static final Logger LOG = Logger.getLogger(VehicleLocationConsumer.class.getName());
-    private static final String TOPIC_VEHICLE_LOCATION = "VehicleLocation";
 
     private final KafkaConsumer<Long, String> consumer;
     private final long pollTimeout;
@@ -27,19 +27,19 @@ public class VehicleLocationConsumer extends ShutdownableThread {
     public VehicleLocationConsumer(long pollTimeout, ISmartDriverObserver observer) {
         // Podrá ser interrumpible.
         super("VehicleLocationConsumer", true);
-        this.consumer = new KafkaConsumer<>(Main.getKafkaProperties());
+        this.consumer = new KafkaConsumer<>(Kafka.getKafkaDataStorageProperties());
         this.pollTimeout = pollTimeout;
         this.observer = observer;
     }
 
     @Override
     public void doWork() {
-        consumer.subscribe(Collections.singletonList(TOPIC_VEHICLE_LOCATION));
+        consumer.subscribe(Collections.singletonList(Kafka.TOPIC_VEHICLE_LOCATION));
 
         // The 'consumer' for each 'Vehicle Locations' will poll every 'pollTimeout' milisegundos, to get all the data received by Kafka.
         ConsumerRecords<Long, String> records = consumer.poll(pollTimeout);
         for (ConsumerRecord<Long, String> record : records) {
-            LOG.log(Level.FINE, "VehicleLocationConsumer.doWork() - {0}: {1} [{2}] with offset {3}", new Object[]{record.topic(), Constants.dfISO8601.format(record.timestamp()), record.key(), record.offset()});
+            LOG.log(Level.INFO, "VehicleLocationConsumer.doWork() - {0}: {1} [{2}] with offset {3}", new Object[]{record.topic(), Constants.dfISO8601.format(record.timestamp()), record.key(), record.offset()});
 
             // Get the data since the last poll and process it
             Event events[] = Util.getEventsFromJson(record.value());
@@ -62,7 +62,7 @@ public class VehicleLocationConsumer extends ShutdownableThread {
                 // After getting searching for the vehicle with its sourceId, process and store in case it doesn't exists
                 if (analyzedVehicle == null) {
                     LOG.log(Level.FINE, "VehicleLocationConsumer.doWork() - New vehicle: id={0}", event.getSourceId());
-                    analyzedVehicle = new Vehicle(event.getSourceId(), Integer.parseInt(Main.getKafkaProperties()
+                    analyzedVehicle = new Vehicle(event.getSourceId(), Integer.parseInt(Kafka.getKafkaDataStorageProperties()
                             .getProperty("vehicleLocation.historic.size", "10")));
                     Main.addAnalyzedVehicle(event.getSourceId(), analyzedVehicle);
                 }

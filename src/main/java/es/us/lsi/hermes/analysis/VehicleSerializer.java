@@ -17,12 +17,11 @@ public class VehicleSerializer implements JsonSerializer<Vehicle> {
         Gson gson = new Gson();
         JsonObject jsonObject = new JsonObject();
         jsonObject.addProperty("id", vehicle.getId());
-        jsonObject.addProperty("score", vehicle.getScore());
+        jsonObject.addProperty("stress", vehicle.getStress());
         Type historicLocationsListType = new TypeToken<ArrayList<Location>>() { }.getType();
         jsonObject.add("historicLocations", gson.toJsonTree(vehicle.getHistoricLocationsList(), historicLocationsListType));
         Type surroundingVehiclesListType = new TypeToken<ArrayList<Vehicle.SurroundingVehicle>>() { }.getType();
         jsonObject.add("surroundingVehicles", gson.toJsonTree(vehicle.getSurroundingVehiclesList(), surroundingVehiclesListType));
         return jsonObject;
     }
-
 }

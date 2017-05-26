@@ -4,6 +4,9 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import es.us.lsi.hermes.smartDriver.DataSection;
 import es.us.lsi.hermes.smartDriver.Location;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import ztreamy.Event;
@@ -97,5 +100,27 @@ public class Util {
         // El radio de la Tierra es, aproximadamente, 6.371 Km, es decir, 6.371.000 metros.
 
         return 6371000.0d * c;
+    }
+
+    /**
+     * Method for loading a properties file.
+     *
+     * @param propertiesFileName Name of the properties file.
+     * @return Loaded properties file.
+     */
+    public static Properties initProperties(String propertiesFileName) {
+        Properties result = new Properties();
+
+        try {
+            ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+            InputStream input = classLoader.getResourceAsStream(propertiesFileName);
+            result.load(input);
+        } catch (IOException ex) {
+            LOG.log(Level.SEVERE, "initProperties() - Error loading properties file: " + propertiesFileName, ex);
+        } catch (NullPointerException ex) {
+            LOG.log(Level.SEVERE, "initProperties() - File \'{0}\' not found", propertiesFileName);
+        }
+
+        return result;
     }
 }
