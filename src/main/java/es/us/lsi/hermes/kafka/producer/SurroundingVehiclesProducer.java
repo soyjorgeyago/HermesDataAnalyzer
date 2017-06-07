@@ -35,7 +35,6 @@ public class SurroundingVehiclesProducer extends Thread {
 
         // Analizamos cuáles son los vehículos cercanos entre sí y lo publicamos.
 
-        System.out.println("SurroundingProducer: " + vehicles.size());
         for (Vehicle v : vehicles) {
             String json = gson.toJson(v);
             long id = KAFKA_RECORD_ID.getAndIncrement();

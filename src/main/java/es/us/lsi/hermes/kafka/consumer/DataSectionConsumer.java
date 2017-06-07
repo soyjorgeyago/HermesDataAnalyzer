@@ -29,8 +29,6 @@ public class DataSectionConsumer extends ShutdownableThread {
 
     @Override
     public void doWork() {
-        System.out.println("DataSection Consumer");
-
         consumer.subscribe(Collections.singletonList(TOPIC_DATA_SECTION));
         ConsumerRecords<Long, String> records = consumer.poll(pollTimeout);
         for (ConsumerRecord<Long, String> record : records) {
@@ -38,13 +36,13 @@ public class DataSectionConsumer extends ShutdownableThread {
 
             Event[] events = Util.getEventsFromJson(record.value());
             if (events == null || events.length <= 0) {
-                LOG.log(Level.SEVERE, "DataSectionConsumer.doWork() - Error al obtener los eventos de tipo 'Data Section' del JSON recibido: {0}", record.value());
+                LOG.log(Level.SEVERE, "DataSectionConsumer.doWork() - Error al obtener los eventos de tipo 'DataSection' del JSON recibido: {0}", record.value());
                 continue;
             }
 
-            // Es un conjunto de eventos de tipo 'Data Section'.
+            // Es un conjunto de eventos de tipo 'DataSection'.
             for (Event event : events) {
-                LOG.log(Level.FINE, "DataSectionConsumer.doWork() - DATA SECTION {0} con event-id {1}", new Object[]{event.getTimestamp(), event.getEventId()});
+                LOG.log(Level.FINE, "DataSectionConsumer.doWork() - 'DataSection' {0} con event-id {1}", new Object[]{event.getTimestamp(), event.getEventId()});
 
 //                    DataSection dataSection = Util.getDataSectionFromEvent(event);
 //                    if (dataSection != null) {

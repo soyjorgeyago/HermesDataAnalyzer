@@ -50,7 +50,7 @@ public class Util {
         try {
             return gson.fromJson(gson.toJson(event.getBody().get("Location")), Location.class);
         } catch (JsonSyntaxException ex) {
-            LOG.log(Level.SEVERE, "getVehicleLocationFromEvent() - Error al intentar obtener un 'Vehicle Location' de un evento", ex.getMessage());
+            LOG.log(Level.SEVERE, "getVehicleLocationFromEvent() - Error al intentar obtener un 'VehicleLocation' de un evento", ex.getMessage());
         }
 
         return null;
@@ -62,7 +62,7 @@ public class Util {
         try {
             return gson.fromJson(gson.toJson(event.getBody().get("Data Section")), DataSection.class);
         } catch (JsonSyntaxException ex) {
-            LOG.log(Level.SEVERE, "getDataSectionFromEvent() - Error al intentar obtener un 'Data Section' de un evento", ex.getMessage());
+            LOG.log(Level.SEVERE, "getDataSectionFromEvent() - Error al intentar obtener un 'DataSection' de un evento", ex.getMessage());
             return null;
         }
     }

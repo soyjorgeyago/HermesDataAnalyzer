@@ -36,7 +36,7 @@ public class VehicleLocationConsumer extends ShutdownableThread {
     public void doWork() {
         consumer.subscribe(Collections.singletonList(TOPIC_VEHICLE_LOCATION));
 
-        // The 'consumer' for each 'Vehicle Locations' will poll every 'pollTimeout' milisegundos, to get all the data received by Kafka.
+        // The 'consumer' for each 'VehicleLocations' will poll every 'pollTimeout' milisegundos, to get all the data received by Kafka.
         ConsumerRecords<Long, String> records = consumer.poll(pollTimeout);
         for (ConsumerRecord<Long, String> record : records) {
             LOG.log(Level.FINE, "VehicleLocationConsumer.doWork() - {0}: {1} [{2}] with offset {3}", new Object[]{record.topic(), Constants.dfISO8601.format(record.timestamp()), record.key(), record.offset()});
@@ -44,7 +44,7 @@ public class VehicleLocationConsumer extends ShutdownableThread {
             // Get the data since the last poll and process it
             Event events[] = Util.getEventsFromJson(record.value());
             if (events == null || events.length <= 0) {
-                LOG.log(Level.SEVERE, "VehicleLocationConsumer.doWork() - Error obtaining 'Vehicle Location' events from the JSON received: {0}", record.value());
+                LOG.log(Level.SEVERE, "VehicleLocationConsumer.doWork() - Error obtaining 'VehicleLocation' events from the JSON received: {0}", record.value());
                 continue;
             }
 

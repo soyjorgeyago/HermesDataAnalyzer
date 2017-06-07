@@ -47,12 +47,12 @@ public class Main implements ISmartDriverObserver {
         long pollTimeout = Long.parseLong(kafkaProperties.getProperty("consumer.poll.timeout.ms", "5000"));
         LOG.log(Level.INFO, "main() - Los ''consumers'' de Kafka harán sondeos para ver si hay nuevos datos cada {0} milisegundos", pollTimeout);
 
-        LOG.log(Level.INFO, "main() - Inicialización del consumidor de 'Vehicle Location' de Kafka");
+        LOG.log(Level.INFO, "main() - Inicialización del consumidor de 'VehicleLocation' de Kafka");
         Main kafkaController = new Main();
         VehicleLocationConsumer vehicleLocationConsumer = new VehicleLocationConsumer(pollTimeout, kafkaController);
         vehicleLocationConsumer.start();
 
-        LOG.log(Level.INFO, "main() - Inicialización del consumidor de 'Data Section' de Kafka");
+        LOG.log(Level.INFO, "main() - Inicialización del consumidor de 'DataSection' de Kafka");
         DataSectionConsumer dataSectionConsumer = new DataSectionConsumer(pollTimeout);
         dataSectionConsumer.start();
 
