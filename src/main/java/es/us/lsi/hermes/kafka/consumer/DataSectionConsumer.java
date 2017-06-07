@@ -1,6 +1,6 @@
 package es.us.lsi.hermes.kafka.consumer;
 
-import es.us.lsi.hermes.Main;
+import es.us.lsi.hermes.Kafka;
 import es.us.lsi.hermes.util.Constants;
 import es.us.lsi.hermes.util.Util;
 import java.util.Collections;
@@ -15,7 +15,6 @@ import ztreamy.Event;
 public class DataSectionConsumer extends ShutdownableThread {
 
     private static final Logger LOG = Logger.getLogger(DataSectionConsumer.class.getName());
-    private static final String TOPIC_DATA_SECTION = "DataSection";
 
     private final KafkaConsumer<Long, String> consumer;
     private final long pollTimeout;
@@ -23,13 +22,13 @@ public class DataSectionConsumer extends ShutdownableThread {
     public DataSectionConsumer(long pollTimeout) {
         // Podrá ser interrumpible.
         super("DataSectionConsumer", true);
-        this.consumer = new KafkaConsumer<>(Main.getKafkaProperties());
+        this.consumer = new KafkaConsumer<>(Kafka.getKafkaDataStorageProperties());
         this.pollTimeout = pollTimeout;
     }
 
     @Override
     public void doWork() {
-        consumer.subscribe(Collections.singletonList(TOPIC_DATA_SECTION));
+        consumer.subscribe(Collections.singletonList(Kafka.TOPIC_DATA_SECTION));
         ConsumerRecords<Long, String> records = consumer.poll(pollTimeout);
         for (ConsumerRecord<Long, String> record : records) {
             LOG.log(Level.FINE, "DataSectionConsumer.doWork() - {0}: {1} [{2}] con offset {3}", new Object[]{record.topic(), Constants.dfISO8601.format(record.timestamp()), record.key(), record.offset()});
