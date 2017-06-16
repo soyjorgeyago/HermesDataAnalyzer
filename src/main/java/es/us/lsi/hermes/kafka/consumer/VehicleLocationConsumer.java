@@ -77,6 +77,8 @@ public class VehicleLocationConsumer extends ShutdownableThread {
                 observer.update();
             }
         }
+
+        // TODO: Test the Consumer without a working Kafka server
     }
 
     @Override

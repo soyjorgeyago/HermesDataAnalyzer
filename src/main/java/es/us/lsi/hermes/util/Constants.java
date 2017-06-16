@@ -5,4 +5,6 @@ import java.text.SimpleDateFormat;
 public class Constants {
 
     public static final SimpleDateFormat dfISO8601 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+
+    public static final int ACTIVE_VEHICLES_FREQUENCY = 1;
 }

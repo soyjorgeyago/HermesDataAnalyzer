@@ -22,8 +22,8 @@ public class ActiveVehiclesProducer extends Thread {
     private final Gson gson;
 
     public ActiveVehiclesProducer() {
-        GsonBuilder gsonBuilder = new GsonBuilder();
-        gsonBuilder.registerTypeAdapter(Vehicle.class, new VehicleSerializer());
+        final GsonBuilder gsonBuilder = new GsonBuilder();
+        gsonBuilder.registerTypeAdapter(Vehicle.class, new VehicleSerializer(false));
         gson = gsonBuilder.create();
     }
 
@@ -32,11 +32,10 @@ public class ActiveVehiclesProducer extends Thread {
         KafkaProducer<Long, String> producer = new KafkaProducer<>(Kafka.getKafkaDataAnalyzerProperties());
 
         // Send all active vehicles periodically
-        String json = gson.toJson(Main.getAnalyzedVehicles().values());
+        String json = gson.toJson(Main.getAnalyzedVehicles());
         long id = KAFKA_RECORD_ID.getAndIncrement();
         LOG.log(Level.FINE, "run() - Topic: " + Kafka.TOPIC_ACTIVE_VEHICLES + " for all the active vehicles");
         producer.send(new ProducerRecord<>(Kafka.TOPIC_ACTIVE_VEHICLES, id, json), new KafkaCallBack(System.currentTimeMillis(), id));
-        System.out.println("Sin error");
     }
 
     class KafkaCallBack implements Callback {
@@ -53,7 +52,6 @@ public class ActiveVehiclesProducer extends Thread {
         public void onCompletion(RecordMetadata metadata, Exception exception) {
             if (metadata != null) {
                 long elapsedTime = System.currentTimeMillis() - startTime;
-                System.out.println("Callback correcto");
                 LOG.log(Level.FINE, "onCompletion() - Mensaje enviado correctamente a Kafka\n - Key: {0}\n - Partición: {1}\n - Offset: {2}\n - Tiempo transcurrido: {3} ms", new Object[]{key, metadata.partition(), metadata.offset(), elapsedTime});
             } else {
                 LOG.log(Level.SEVERE, "onCompletion() - No se ha podido enviar a Kafka", exception);

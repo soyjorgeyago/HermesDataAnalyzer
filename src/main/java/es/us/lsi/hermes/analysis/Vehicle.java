@@ -3,6 +3,7 @@ package es.us.lsi.hermes.analysis;
 import es.us.lsi.hermes.Kafka;
 import es.us.lsi.hermes.Main;
 import es.us.lsi.hermes.smartDriver.Location;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -10,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class Vehicle {
+public class Vehicle implements Serializable {
 
     private final String id;
     private int stress;
