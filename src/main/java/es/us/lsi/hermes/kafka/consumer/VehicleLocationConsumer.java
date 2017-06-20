@@ -20,24 +20,23 @@ public class VehicleLocationConsumer extends ShutdownableThread {
 
     private static final Logger LOG = Logger.getLogger(VehicleLocationConsumer.class.getName());
 
-    private final KafkaConsumer<Long, String> consumer;
+    private final KafkaConsumer<Long, String> kafkaConsumer;
     private final long pollTimeout;
     private final ISmartDriverObserver observer;
 
     public VehicleLocationConsumer(long pollTimeout, ISmartDriverObserver observer) {
         // Podrá ser interrumpible.
         super("VehicleLocationConsumer", true);
-        this.consumer = new KafkaConsumer<>(Kafka.getKafkaDataStorageProperties());
+        this.kafkaConsumer = new KafkaConsumer<>(Kafka.getKafkaDataStorageProperties());
         this.pollTimeout = pollTimeout;
         this.observer = observer;
+        kafkaConsumer.subscribe(Collections.singletonList(Kafka.TOPIC_VEHICLE_LOCATION));
     }
 
     @Override
     public void doWork() {
-        consumer.subscribe(Collections.singletonList(Kafka.TOPIC_VEHICLE_LOCATION));
-
         // The 'consumer' for each 'VehicleLocations' will poll every 'pollTimeout' milisegundos, to get all the data received by Kafka.
-        ConsumerRecords<Long, String> records = consumer.poll(pollTimeout);
+        ConsumerRecords<Long, String> records = kafkaConsumer.poll(pollTimeout);
         for (ConsumerRecord<Long, String> record : records) {
             LOG.log(Level.INFO, "VehicleLocationConsumer.doWork() - {0}: {1} [{2}] with offset {3}", new Object[]{record.topic(), Constants.dfISO8601.format(record.timestamp()), record.key(), record.offset()});
 
@@ -53,8 +52,9 @@ public class VehicleLocationConsumer extends ShutdownableThread {
 
                 // Get the vehicle location.
                 Location vehicleLocation = Util.getVehicleLocationFromEvent(event);
-                if (vehicleLocation == null)
+                if (vehicleLocation == null) {
                     continue;
+                }
 
                 // A 'HashMap' will store the vehicles with the most updated information, in essence those who are moving
                 Vehicle analyzedVehicle = Main.getAnalyzedVehicle(event.getSourceId());
@@ -79,8 +79,8 @@ public class VehicleLocationConsumer extends ShutdownableThread {
         }
     }
 
-    @Override
-    public void shutdown() {
-        super.shutdown();
+    public void stopConsumer() {
+        kafkaConsumer.close();
+        shutdown();
     }
 }

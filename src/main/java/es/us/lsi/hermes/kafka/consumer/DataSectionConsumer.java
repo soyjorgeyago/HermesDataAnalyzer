@@ -16,20 +16,20 @@ public class DataSectionConsumer extends ShutdownableThread {
 
     private static final Logger LOG = Logger.getLogger(DataSectionConsumer.class.getName());
 
-    private final KafkaConsumer<Long, String> consumer;
+    private final KafkaConsumer<Long, String> kafkaConsumer;
     private final long pollTimeout;
 
     public DataSectionConsumer(long pollTimeout) {
         // Podrá ser interrumpible.
         super("DataSectionConsumer", true);
-        this.consumer = new KafkaConsumer<>(Kafka.getKafkaDataStorageProperties());
+        this.kafkaConsumer = new KafkaConsumer<>(Kafka.getKafkaDataStorageProperties());
         this.pollTimeout = pollTimeout;
+        kafkaConsumer.subscribe(Collections.singletonList(Kafka.TOPIC_DATA_SECTION));
     }
 
     @Override
     public void doWork() {
-        consumer.subscribe(Collections.singletonList(Kafka.TOPIC_DATA_SECTION));
-        ConsumerRecords<Long, String> records = consumer.poll(pollTimeout);
+        ConsumerRecords<Long, String> records = kafkaConsumer.poll(pollTimeout);
         for (ConsumerRecord<Long, String> record : records) {
             LOG.log(Level.FINE, "DataSectionConsumer.doWork() - {0}: {1} [{2}] con offset {3}", new Object[]{record.topic(), Constants.dfISO8601.format(record.timestamp()), record.key(), record.offset()});
 
@@ -49,5 +49,10 @@ public class DataSectionConsumer extends ShutdownableThread {
 //                    }
             }
         }
+    }
+    
+    public void stopConsumer() {
+        kafkaConsumer.close();
+        shutdown();
     }
 }

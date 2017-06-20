@@ -53,7 +53,6 @@ public class ActiveVehiclesProducer extends Thread {
         public void onCompletion(RecordMetadata metadata, Exception exception) {
             if (metadata != null) {
                 long elapsedTime = System.currentTimeMillis() - startTime;
-                System.out.println("Callback correcto");
                 LOG.log(Level.FINE, "onCompletion() - Mensaje enviado correctamente a Kafka\n - Key: {0}\n - Partición: {1}\n - Offset: {2}\n - Tiempo transcurrido: {3} ms", new Object[]{key, metadata.partition(), metadata.offset(), elapsedTime});
             } else {
                 LOG.log(Level.SEVERE, "onCompletion() - No se ha podido enviar a Kafka", exception);
