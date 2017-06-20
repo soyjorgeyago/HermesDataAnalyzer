@@ -6,9 +6,9 @@ import es.us.lsi.hermes.kafka.consumer.VehicleLocationConsumer;
 import es.us.lsi.hermes.kafka.producer.ActiveVehiclesProducer;
 import es.us.lsi.hermes.kafka.producer.SurroundingVehiclesProducer;
 import es.us.lsi.hermes.smartDriver.Location;
+import es.us.lsi.hermes.util.Constants;
 import es.us.lsi.hermes.util.Util;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -49,7 +49,7 @@ public class Main implements ISmartDriverObserver {
                     new ActiveVehiclesProducer().start();
                 }
             }
-        }, 5, 1, TimeUnit.SECONDS);
+        }, 5, Constants.ACTIVE_VEHICLES_FREQUENCY, TimeUnit.SECONDS);
     }
 
     public static void addAnalyzedVehicle(String id, Vehicle v) {
@@ -60,8 +60,8 @@ public class Main implements ISmartDriverObserver {
         return ANALYZED_VEHICLES.get(id);
     }
 
-    public static ConcurrentHashMap<String, Vehicle> getAnalyzedVehicles() {
-        return ANALYZED_VEHICLES;
+    public static Collection<Vehicle> getAnalyzedVehicles() {
+        return ANALYZED_VEHICLES.values();
     }
 
     @Override

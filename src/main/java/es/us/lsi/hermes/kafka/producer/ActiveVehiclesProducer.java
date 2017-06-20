@@ -22,8 +22,8 @@ public class ActiveVehiclesProducer extends Thread {
     private final Gson gson;
 
     public ActiveVehiclesProducer() {
-        GsonBuilder gsonBuilder = new GsonBuilder();
-        gsonBuilder.registerTypeAdapter(Vehicle.class, new VehicleSerializer());
+        final GsonBuilder gsonBuilder = new GsonBuilder();
+        gsonBuilder.registerTypeAdapter(Vehicle.class, new VehicleSerializer(false));
         gson = gsonBuilder.create();
     }
 
@@ -32,11 +32,10 @@ public class ActiveVehiclesProducer extends Thread {
         KafkaProducer<Long, String> producer = new KafkaProducer<>(Kafka.getKafkaDataAnalyzerProperties());
 
         // Send all active vehicles periodically
-        String json = gson.toJson(Main.getAnalyzedVehicles().values());
+        String json = gson.toJson(Main.getAnalyzedVehicles());
         long id = KAFKA_RECORD_ID.getAndIncrement();
         LOG.log(Level.FINE, "run() - Topic: " + Kafka.TOPIC_ACTIVE_VEHICLES + " for all the active vehicles");
         producer.send(new ProducerRecord<>(Kafka.TOPIC_ACTIVE_VEHICLES, id, json), new KafkaCallBack(System.currentTimeMillis(), id));
-        System.out.println("Sin error");
     }
 
     class KafkaCallBack implements Callback {
