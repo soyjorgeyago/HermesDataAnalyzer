@@ -73,10 +73,7 @@ public class VehicleAnalyzer extends ShutdownableThread {
                 analyzedVehicles.put(event.getSourceId(), analyzedVehicle);
             }
 
-            analyzedVehicle.setLatitude(vehicleLocation.getLatitude());
-            analyzedVehicle.setLongitude(vehicleLocation.getLongitude());
-            analyzedVehicle.setSpeed(vehicleLocation.getSpeed().intValue());
-            analyzedVehicle.setStress(vehicleLocation.getStress());
+            analyzedVehicle.update(vehicleLocation);
 
             // TODO: Los surrounding!!!
 //                // Add a record to the vehicle's location history

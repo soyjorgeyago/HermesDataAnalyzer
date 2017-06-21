@@ -1,5 +1,6 @@
 package es.us.lsi.hermes.analysis;
 
+import es.us.lsi.hermes.smartDriver.Location;
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
@@ -29,11 +30,6 @@ public class Vehicle implements Serializable {
         this.lastUpdate = System.currentTimeMillis();
     }
 
-    public void addSurroundingVehicle(String id) {
-        surroundingVehicles.add(id);
-        lastUpdate = System.currentTimeMillis();
-    }
-
     public String getId() {
         return id;
     }
@@ -42,34 +38,16 @@ public class Vehicle implements Serializable {
         return latitude;
     }
 
-    public void setLatitude(double latitude) {
-        this.latitude = latitude;
-    }
-
     public double getLongitude() {
         return longitude;
-    }
-
-    public void setLongitude(double longitude) {
-        this.longitude = longitude;
     }
 
     public int getSpeed() {
         return speed;
     }
 
-    public void setSpeed(int speed) {
-        this.speed = speed;
-    }
-
-    
     public int getStress() {
         return stress;
-    }
-
-    public void setStress(int stress) {
-        this.stress = stress;
-        lastUpdate = System.currentTimeMillis();
     }
 
     public Set<String> getSurroundingVehicles() {
@@ -78,5 +56,13 @@ public class Vehicle implements Serializable {
 
     public long getLastUpdate() {
         return lastUpdate;
+    }
+
+    public void update(Location vehicleLocation) {
+        latitude = vehicleLocation.getLatitude();
+        longitude = vehicleLocation.getLongitude();
+        speed = vehicleLocation.getSpeed().intValue();
+        stress = vehicleLocation.getStress();
+        lastUpdate = System.currentTimeMillis();
     }
 }
