@@ -43,5 +43,7 @@ nb-configuration.xml
 build.xml
 
 # Project specific
-src/main/resources/Kafka.properties
+src/main/resources/DataAnalyzer.properties
+src/main/resources/DataStorageConsumer.properties
+src/main/resources/DataStorageProducer.properties
 manifest.mf

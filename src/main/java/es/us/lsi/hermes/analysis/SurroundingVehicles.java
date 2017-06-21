@@ -1,10 +1,8 @@
-package es.us.lsi.hermes.kafka.producer;
+package es.us.lsi.hermes.analysis;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import es.us.lsi.hermes.Kafka;
 import es.us.lsi.hermes.analysis.Vehicle;
-import es.us.lsi.hermes.analysis.VehicleSerializer;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
@@ -14,27 +12,23 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 
-public class SurroundingVehiclesProducer extends Thread {
+public class SurroundingVehicles extends Thread {
 
-    private static final Logger LOG = Logger.getLogger(SurroundingVehiclesProducer.class.getName());
+    private static final Logger LOG = Logger.getLogger(SurroundingVehicles.class.getName());
     private static final AtomicLong KAFKA_RECORD_ID = new AtomicLong();
     private final Collection<Vehicle> vehicles;
-    private final Gson gson;
 
-    public SurroundingVehiclesProducer(Collection<Vehicle> vehicles) {
+    public SurroundingVehicles(Collection<Vehicle> vehicles) {
         this.vehicles = vehicles;
-        GsonBuilder gsonBuilder = new GsonBuilder();
-        gsonBuilder.registerTypeAdapter(Vehicle.class, new VehicleSerializer());
-        gson = gsonBuilder.create();
     }
 
     @Override
     public void run() {
-        KafkaProducer<Long, String> producer = new KafkaProducer<>(Kafka.getKafkaDataStorageProperties());
+        KafkaProducer<Long, String> producer = new KafkaProducer<>(Kafka.getKafkaDataStorageProducerProperties());
 
         // Analizamos cuáles son los vehículos cercanos entre sí y lo publicamos.
         for (Vehicle v : vehicles) {
-            String json = gson.toJson(v);
+            String json = new Gson().toJson(v);
             long id = KAFKA_RECORD_ID.getAndIncrement();
             LOG.log(Level.FINE, "run() - Topic: " + Kafka.TOPIC_SURROUNDING_VEHICLES + " for the Vehicle with id: {0}", v.getId());
             producer.send(new ProducerRecord<>(Kafka.TOPIC_SURROUNDING_VEHICLES, id, json),

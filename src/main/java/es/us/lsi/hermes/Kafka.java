@@ -14,18 +14,24 @@ public class Kafka {
     public static final String TOPIC_SURROUNDING_VEHICLES = "SurroundingVehicles";
     public static final String TOPIC_ACTIVE_VEHICLES = "ActiveVehicles";
 
-    private static final Properties KAFKA_DATA_STORAGE_PROPERTIES;
+    private static final Properties KAFKA_DATA_STORAGE_CONSUMER_PROPERTIES;
+    private static final Properties KAFKA_DATA_STORAGE_PRODUCER_PROPERTIES;
     private static final Properties KAFKA_DATA_ANALYZER_PROPERTIES;
 
     static {
         LOG.log(Level.INFO, "Kafka() - Kafka init.");
 
-        KAFKA_DATA_STORAGE_PROPERTIES = Util.initProperties("DataStorage.properties");
+        KAFKA_DATA_STORAGE_CONSUMER_PROPERTIES = Util.initProperties("DataStorageConsumer.properties");
+        KAFKA_DATA_STORAGE_PRODUCER_PROPERTIES = Util.initProperties("DataStorageProducer.properties");
         KAFKA_DATA_ANALYZER_PROPERTIES = Util.initProperties("DataAnalyzer.properties");
     }
 
-    public static Properties getKafkaDataStorageProperties() {
-        return KAFKA_DATA_STORAGE_PROPERTIES;
+    public static Properties getKafkaDataStorageConsumerProperties() {
+        return KAFKA_DATA_STORAGE_CONSUMER_PROPERTIES;
+    }
+    
+    public static Properties getKafkaDataStorageProducerProperties() {
+        return KAFKA_DATA_STORAGE_PRODUCER_PROPERTIES;
     }
 
     public static Properties getKafkaDataAnalyzerProperties() {

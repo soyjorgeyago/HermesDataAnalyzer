@@ -1,0 +1,6 @@
+bootstrap.servers=your_Kafka_server_IP:Port
+
+# Producer
+client.id=your_client_producer_id
+key.serializer=key_serializer
+value.serializer=value_serializer

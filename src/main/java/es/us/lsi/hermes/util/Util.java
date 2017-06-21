@@ -2,14 +2,13 @@ package es.us.lsi.hermes.util;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
-import es.us.lsi.hermes.smartDriver.DataSection;
+import es.us.lsi.hermes.kafka.Event;
 import es.us.lsi.hermes.smartDriver.Location;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import ztreamy.Event;
 
 public class Util {
 
@@ -59,17 +58,6 @@ public class Util {
         return null;
     }
     
-    public static DataSection getDataSectionFromEvent(Event event) {
-        Gson gson = new Gson();
-
-        try {
-            return gson.fromJson(gson.toJson(event.getBody().get("Data Section")), DataSection.class);
-        } catch (JsonSyntaxException ex) {
-            LOG.log(Level.SEVERE, "getDataSectionFromEvent() - Error al intentar obtener un 'DataSection' de un evento", ex.getMessage());
-            return null;
-        }
-    }
-
     public static double distance(double lat1, double lng1, double lat2, double lng2) {
         double p = 0.017453292519943295;
         double a = 0.5 - Math.cos((lat2 - lat1) * p) / 2

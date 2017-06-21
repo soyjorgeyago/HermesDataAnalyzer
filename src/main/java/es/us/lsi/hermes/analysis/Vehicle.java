@@ -1,150 +1,82 @@
 package es.us.lsi.hermes.analysis;
 
-import es.us.lsi.hermes.Kafka;
-import es.us.lsi.hermes.Main;
-import es.us.lsi.hermes.smartDriver.Location;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public class Vehicle implements Serializable {
 
     private final String id;
+    private double latitude;
+    private double longitude;
+    private int speed;
     private int stress;
-    private final LinkedHashMap<String, Location> historicLocations;
     private final Set<String> surroundingVehicles;
-    private Integer oblivionTimeout;
+    private long lastUpdate;
 
     /**
-     * Constructor en el que se indicará el identificador del 'SmartDriver', el
-     * máximo de ubicaciones pasadas que se analizarán y el número máximo de
-     * otros 'SmartDrivers' que se tendrán en cuenta.
+     * Constructor en el que se indicará el identificador del 'SmartDriver'.
      *
      * @param id identificador del 'SmartDriver'
-     * @param historySize Número máximo de ubicaciones que se tendrán en cuenta.
      */
-    public Vehicle(String id, final Integer historySize) {
+    public Vehicle(String id) {
         this.id = id;
         this.stress = 0;
-        this.oblivionTimeout = Integer.parseInt(Kafka.getKafkaDataStorageProperties().getProperty("vehicle.oblivion.timeout.s", "60"));
-        this.historicLocations = new LinkedHashMap<String, Location>() {
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<String, Location> eldest) {
-                return this.size() > historySize;
-            }};
+        this.speed = 0;
+        this.latitude = 0.0d;
+        this.longitude = 0.0d;
         this.surroundingVehicles = new HashSet<>();
-    }
-
-    public void decreaseOblivionTimeout() {
-        oblivionTimeout = oblivionTimeout > 0 ? --oblivionTimeout : 0;
-    }
-
-    public Integer getOblivionTimeout() {
-        return oblivionTimeout;
-    }
-
-    public void resetOblivionTimeout() {
-        oblivionTimeout = Integer.parseInt(Kafka.getKafkaDataStorageProperties().getProperty("vehicle.oblivion.timeout.s", "60"));
-    }
-
-    public void addHistoricLocation(String timeStamp, Location location) {
-        historicLocations.put(timeStamp, location);
-    }
-
-    public Map.Entry<String, Location> getMostRecentHistoricLocationEntry() {
-        return historicLocations.isEmpty() ? null : historicLocations.entrySet().iterator().next();
+        this.lastUpdate = System.currentTimeMillis();
     }
 
     public void addSurroundingVehicle(String id) {
         surroundingVehicles.add(id);
+        lastUpdate = System.currentTimeMillis();
     }
 
     public String getId() {
         return id;
     }
 
+    public double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(double latitude) {
+        this.latitude = latitude;
+    }
+
+    public double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(double longitude) {
+        this.longitude = longitude;
+    }
+
+    public int getSpeed() {
+        return speed;
+    }
+
+    public void setSpeed(int speed) {
+        this.speed = speed;
+    }
+
+    
     public int getStress() {
         return stress;
     }
+
     public void setStress(int stress) {
         this.stress = stress;
-    }
-
-    public LinkedHashMap<String, Location> getHistoricLocations() {
-        return historicLocations;
-    }
-
-    public List<Location> getHistoricLocationsList() {
-        return new ArrayList<>(historicLocations.values());
+        lastUpdate = System.currentTimeMillis();
     }
 
     public Set<String> getSurroundingVehicles() {
         return surroundingVehicles;
     }
 
-    public List<SurroundingVehicle> getSurroundingVehiclesList() {
-        List<SurroundingVehicle> result = new ArrayList<>();
-
-        for (String surroundingVehicleId : surroundingVehicles) {       //TODO Comprobar el fix
-            // FIX
-            Vehicle v = Main.getAnalyzedVehicle(surroundingVehicleId);
-            if (v != null) {
-                result.add(new SurroundingVehicle(v));
-            }
-        }
-
-        return result;
-    }
-
-    public class SurroundingVehicle {
-
-        private String id;
-        private int stress;
-        private Double latitude;
-        private Double longitude;
-
-        private SurroundingVehicle(Vehicle v) {
-            this.id = v.getId();
-            this.stress = v.getStress();
-            Map.Entry<String, Location> mrl = v.getMostRecentHistoricLocationEntry();
-            this.latitude = mrl.getValue().getLatitude();
-            this.longitude = mrl.getValue().getLongitude();
-        }
-
-        public String getId() {
-            return id;
-        }
-
-        public void setId(String id) {
-            this.id = id;
-        }
-
-        public int getStress() {
-            return stress;
-        }
-        public void setStress(int stress) {
-            this.stress = stress;
-        }
-
-        public Double getLatitude() {
-            return latitude;
-        }
-
-        public void setLatitude(Double latitude) {
-            this.latitude = latitude;
-        }
-
-        public Double getLongitude() {
-            return longitude;
-        }
-
-        public void setLongitude(Double longitude) {
-            this.longitude = longitude;
-        }
-
+    public long getLastUpdate() {
+        return lastUpdate;
     }
 }
