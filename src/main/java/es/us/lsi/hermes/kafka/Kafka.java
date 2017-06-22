@@ -1,4 +1,4 @@
-package es.us.lsi.hermes;
+package es.us.lsi.hermes.kafka;
 
 import es.us.lsi.hermes.util.Util;
 import java.util.Properties;
@@ -10,7 +10,6 @@ public class Kafka {
     private static final Logger LOG = Logger.getLogger(Kafka.class.getName());
 
     public static final String TOPIC_VEHICLE_LOCATION = "VehicleLocation";
-    public static final String TOPIC_DATA_SECTION = "DataSection";
     public static final String TOPIC_SURROUNDING_VEHICLES = "SurroundingVehicles";
     public static final String TOPIC_ACTIVE_VEHICLES = "ActiveVehicles";
 

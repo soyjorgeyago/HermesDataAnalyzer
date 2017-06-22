@@ -1,7 +1,7 @@
 package es.us.lsi.hermes.analysis;
 
 import com.google.gson.Gson;
-import es.us.lsi.hermes.Kafka;
+import es.us.lsi.hermes.kafka.Kafka;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;

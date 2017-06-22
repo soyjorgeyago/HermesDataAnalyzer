@@ -1,16 +1,16 @@
 package es.us.lsi.hermes.analysis;
 
 import com.google.gson.Gson;
-import es.us.lsi.hermes.Kafka;
+import es.us.lsi.hermes.kafka.Kafka;
 import es.us.lsi.hermes.util.Util;
-import es.us.lsi.hermes.analysis.Vehicle;
 import es.us.lsi.hermes.kafka.Event;
 import es.us.lsi.hermes.smartDriver.Location;
 import es.us.lsi.hermes.util.Constants;
+
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import kafka.utils.ShutdownableThread;
@@ -24,32 +24,34 @@ public class VehicleAnalyzer extends ShutdownableThread {
 
     private static final Logger LOG = Logger.getLogger(VehicleAnalyzer.class.getName());
 
-    private final KafkaConsumer<Long, String> kafkaConsumer;
-    private final KafkaProducer<Long, String> kafkaProducer;
-    private final long pollTimeout;
-    private final long oblivionTimeoutInMilliseconds;
+    private final KafkaConsumer<Long, String> kafkaVLConsumer;
+    private final KafkaProducer<Long, String> kafkaAVProducer,  kafkaSVProducer;
+    private final long pollTimeout, oblivionTimeoutInMilliseconds;
     private static HashMap<String, Vehicle> analyzedVehicles;
+    private final Gson gson;
 
     public VehicleAnalyzer(long pollTimeout) {
         // Podrá ser interrumpible.
         super("VehicleLocationConsumer", true);
-        this.kafkaConsumer = new KafkaConsumer<>(Kafka.getKafkaDataStorageConsumerProperties());
-        this.kafkaProducer = new KafkaProducer<>(Kafka.getKafkaDataAnalyzerProperties());
+        this.kafkaVLConsumer = new KafkaConsumer<>(Kafka.getKafkaDataStorageConsumerProperties());
+        this.kafkaAVProducer = new KafkaProducer<>(Kafka.getKafkaDataAnalyzerProperties());
+        this.kafkaSVProducer = new KafkaProducer<>(Kafka.getKafkaDataStorageProducerProperties());
         this.pollTimeout = pollTimeout;
         this.oblivionTimeoutInMilliseconds = Long.parseLong(Kafka.getKafkaDataStorageConsumerProperties().getProperty("vehicle.oblivion.timeout.s", "60")) * 1000;
-        analyzedVehicles = new HashMap<>();
-        kafkaConsumer.subscribe(Collections.singletonList(Kafka.TOPIC_VEHICLE_LOCATION));
+        VehicleAnalyzer.analyzedVehicles = new HashMap<>();
+        this.kafkaVLConsumer.subscribe(Collections.singletonList(Kafka.TOPIC_VEHICLE_LOCATION));
+        this.gson = new Gson();
     }
 
     @Override
     public void doWork() {
         // The 'consumer' for each 'VehicleLocations' will poll every 'pollTimeout' milliseconds, to get all the data received by Kafka.
-        ConsumerRecords<Long, String> records = kafkaConsumer.poll(pollTimeout);
+        ConsumerRecords<Long, String> records = kafkaVLConsumer.poll(pollTimeout);
         for (ConsumerRecord<Long, String> record : records) {
             LOG.log(Level.FINE, "VehicleLocationConsumer.doWork() - {0}: {1} [{2}] with offset {3}", new Object[]{record.topic(), Constants.dfISO8601.format(record.timestamp()), record.key(), record.offset()});
 
             // Get the data since the last poll and process it
-            Event event = new Gson().fromJson(record.value(), Event.class);
+            Event event = gson.fromJson(record.value(), Event.class);
             if (event == null) {
                 LOG.log(Level.SEVERE, "VehicleLocationConsumer.doWork() - Error obtaining 'VehicleLocation' events from the JSON received: {0}", record.value());
                 continue;
@@ -73,37 +75,86 @@ public class VehicleAnalyzer extends ShutdownableThread {
                 analyzedVehicles.put(event.getSourceId(), analyzedVehicle);
             }
 
+            // Update the data related to the vehicle's new location and also the active vehicles in the system
             analyzedVehicle.update(vehicleLocation);
 
-            // TODO: Los surrounding!!!
-//                // Add a record to the vehicle's location history
-//                analyzedVehicle.addHistoricLocation(vehicleLocation.getTimeStamp(), vehicleLocation);
-//                // Reset the "forget the vehicle if inactive" timeout
-//                analyzedVehicle.resetOblivionTimeout();
-//
-//                // Notify the observer about data changes
-//                // FIXME: Remove?       <- This triggers the surrounding analysis
-//                observer.update();
+            updateAnalysedVehiclesSurroundings(analyzedVehicle);
+
+            // Build and send the Json with the vehicle information
+            String json = gson.toJson(analyzedVehicle);
+            kafkaSVProducer.send(new ProducerRecord<Long, String>(Kafka.TOPIC_SURROUNDING_VEHICLES, json));
         }
 
-        for (Iterator<Map.Entry<String, Vehicle>> it = analyzedVehicles.entrySet().iterator(); it.hasNext();) {
-            Map.Entry<String, Vehicle> entry = it.next();
-            if (System.currentTimeMillis() - entry.getValue().getLastUpdate() > oblivionTimeoutInMilliseconds) {
-                it.remove();
+        // TODO - Review - In case of performance issues (CPU) <= Move to top
+        // Remove inactive vehicles
+        long currentTimeMillis = System.currentTimeMillis();
+        for(Vehicle vehicle : analyzedVehicles.values()){
+            if (currentTimeMillis - vehicle.getLastUpdate() > oblivionTimeoutInMilliseconds) {
+                analyzedVehicles.remove(vehicle.getId());
             }
         }
 
-        String json = new Gson().toJson(analyzedVehicles.values());
-        ProducerRecord producerRecord = new ProducerRecord<>(Kafka.TOPIC_ACTIVE_VEHICLES, json);
-        kafkaProducer.send(producerRecord);
+        // Publish the all Active Vehicles available right now
+        String json = gson.toJson(analyzedVehicles.values());
+        ProducerRecord<Long, String> producerRecord = new ProducerRecord<>(Kafka.TOPIC_ACTIVE_VEHICLES, json);
+        kafkaAVProducer.send(producerRecord);
+    }
+
+    private void updateAnalysedVehiclesSurroundings(Vehicle currentVehicle) {
+
+        Collection<String> oldNeighbours = new ArrayList<>();
+        // Analizamos los vehículos que ya están en su radio de influencia, por si hay que quitar alguno.
+        for (String id : currentVehicle.getSurroundingVehicles()) {
+
+            Vehicle surroundingVehicle = analyzedVehicles.get(id);
+
+            // Calculamos la distancia con el método rápido.
+            double distance = Util.distance(currentVehicle.getLatitude(), currentVehicle.getLongitude(),
+                    surroundingVehicle.getLatitude(), surroundingVehicle.getLongitude());
+
+            //If the surroundingVehicle is nearby and is an active vehicle
+            if (distance <= Constants.SURROUNDING_DIAMETER && analyzedVehicles.containsKey(id)) {
+                continue;
+            }
+
+            LOG.log(Level.FINE, "AnalyzeVehicles.run() - Los vehículos han dejado de influirse ({0} - {1})",
+                    new Object[]{currentVehicle.getId(), surroundingVehicle.getId()});
+
+            // Add the vehicle to the list of all neighbours, soon to be removed
+            oldNeighbours.add(surroundingVehicle.getId());
+            // Del mismo modo, también eliminamos el identificador del vehículo actual del conjunto del otro vehículo.
+            surroundingVehicle.getSurroundingVehicles().remove(currentVehicle.getId());
+
+        }
+        // Remove all the old neighbours
+        currentVehicle.getSurroundingVehicles().removeAll(oldNeighbours);
+
+        for (Vehicle otherVehicle : analyzedVehicles.values()) {
+            // Analizamos su relación con los otros vehículos que no están en su conjunto de vehículos cercanos.
+
+            // If it's the same Vehicle or is a Surrounding one,
+            if (currentVehicle.getId().equals(otherVehicle.getId())
+                    || currentVehicle.getSurroundingVehicles().contains(otherVehicle.getId())) {
+                continue;
+            }
+
+            // Calculamos la distancia con el método rápido.
+            double distance = Util.distance(currentVehicle.getLatitude(), currentVehicle.getLongitude(),
+                    otherVehicle.getLatitude(), otherVehicle.getLongitude());
+            // Check if it meets our proximity requirements
+            if (distance > Constants.SURROUNDING_DIAMETER) {
+                continue;
+            }
+
+            // Están en su zona de influencia. Los 2 vehículos se influyen.
+            LOG.log(Level.FINE, "AnalyzeVehicles.run() - Identificadores de los vehículos que se influyen ({0} - {1})", new Object[]{currentVehicle.getId(), otherVehicle.getId()});
+            currentVehicle.getSurroundingVehicles().add(otherVehicle.getId());
+            otherVehicle.getSurroundingVehicles().add(currentVehicle.getId());
+        }
     }
 
     public void stopConsumer() {
-        kafkaConsumer.close();
+        kafkaVLConsumer.close();
         shutdown();
-    }
-
-    public static HashMap<String, Vehicle> getAnalyzedVehicles() {
-        return analyzedVehicles;
     }
 }
