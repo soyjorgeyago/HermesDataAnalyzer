@@ -1,10 +1,12 @@
 package es.us.lsi.hermes.analysis;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import es.us.lsi.hermes.Kafka;
 import es.us.lsi.hermes.util.Util;
 import es.us.lsi.hermes.analysis.Vehicle;
 import es.us.lsi.hermes.kafka.Event;
+import es.us.lsi.hermes.kafka.ExtendedEvent;
 import es.us.lsi.hermes.smartDriver.Location;
 import es.us.lsi.hermes.util.Constants;
 import java.util.Collections;
@@ -32,7 +34,7 @@ public class VehicleAnalyzer extends ShutdownableThread {
 
     public VehicleAnalyzer(long pollTimeout) {
         // Podrá ser interrumpible.
-        super("VehicleLocationConsumer", true);
+        super("VehicleAnalyzer", true);
         this.kafkaConsumer = new KafkaConsumer<>(Kafka.getKafkaDataStorageConsumerProperties());
         this.kafkaProducer = new KafkaProducer<>(Kafka.getKafkaDataAnalyzerProperties());
         this.pollTimeout = pollTimeout;
@@ -46,16 +48,22 @@ public class VehicleAnalyzer extends ShutdownableThread {
         // The 'consumer' for each 'VehicleLocations' will poll every 'pollTimeout' milliseconds, to get all the data received by Kafka.
         ConsumerRecords<Long, String> records = kafkaConsumer.poll(pollTimeout);
         for (ConsumerRecord<Long, String> record : records) {
-            LOG.log(Level.FINE, "VehicleLocationConsumer.doWork() - {0}: {1} [{2}] with offset {3}", new Object[]{record.topic(), Constants.dfISO8601.format(record.timestamp()), record.key(), record.offset()});
+            LOG.log(Level.FINE, "VehicleAnalyzer.doWork() - {0}: {1} [{2}] with offset {3}", new Object[]{record.topic(), Constants.dfISO8601.format(record.timestamp()), record.key(), record.offset()});
 
             // Get the data since the last poll and process it
-            Event event = new Gson().fromJson(record.value(), Event.class);
-            if (event == null) {
-                LOG.log(Level.SEVERE, "VehicleLocationConsumer.doWork() - Error obtaining 'VehicleLocation' events from the JSON received: {0}", record.value());
+            ExtendedEvent event;
+            try {
+                event = new Gson().fromJson(record.value(), ExtendedEvent.class);
+                if (event == null) {
+                    LOG.log(Level.SEVERE, "VehicleAnalyzer.doWork() - Null event: {0}", record.value());
+                    continue;
+                }
+            } catch (JsonSyntaxException ex) {
+                LOG.log(Level.SEVERE, "VehicleAnalyzer.doWork() - Invalid 'VehicleLocation' event: {0}", record.value());
                 continue;
             }
 
-            LOG.log(Level.FINE, "VehicleLocationConsumer.doWork() - VEHICLE LOCATION {0} with event-id {1}", new Object[]{event.getTimestamp(), event.getEventId()});
+            LOG.log(Level.FINE, "VehicleAnalyzer.doWork() - VEHICLE LOCATION {0} with event-id {1}", new Object[]{event.getTimestamp(), event.getEventId()});
 
             // Get the vehicle location.
             Location vehicleLocation = Util.getVehicleLocationFromEvent(event);
@@ -68,7 +76,7 @@ public class VehicleAnalyzer extends ShutdownableThread {
 
             // After getting searching for the vehicle with its sourceId, process and store in case it doesn't exists
             if (analyzedVehicle == null) {
-                LOG.log(Level.FINE, "VehicleLocationConsumer.doWork() - New vehicle: id={0}", event.getSourceId());
+                LOG.log(Level.FINE, "VehicleAnalyzer.doWork() - New vehicle: id={0}", event.getSourceId());
                 analyzedVehicle = new Vehicle(event.getSourceId());
                 analyzedVehicles.put(event.getSourceId(), analyzedVehicle);
             }
