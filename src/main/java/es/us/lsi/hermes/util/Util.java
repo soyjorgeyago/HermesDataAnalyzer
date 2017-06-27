@@ -1,9 +1,5 @@
 package es.us.lsi.hermes.util;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
-import es.us.lsi.hermes.kafka.Event;
-import es.us.lsi.hermes.smartDriver.Location;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
@@ -13,50 +9,6 @@ import java.util.logging.Logger;
 public class Util {
 
     private static final Logger LOG = Logger.getLogger(Util.class.getName());
-
-    /**
-     * Método para obtener los eventos de Ztreamy recibidos. Como pueden llegar
-     * eventos en forma de 'array' o de uno en uno, intentamos, en primer lugar,
-     * la obtención como un único evento, que será el más habitual, y si
-     * fallase, lo intentamos como 'array' de eventos.
-     *
-     * @param json JSON con el/los eventos recibidos.
-     * @return Array con el/los evento/s obtenido/s del JSON.
-     */
-    public static Event[] getEventsFromJson(String json) {
-        Event events[] = null;
-        Gson gson = new Gson();
-
-        // Comprobamos si llega un solo evento
-        try {
-            Event event = gson.fromJson(json, Event.class);
-            events = new Event[]{event};
-        } catch (JsonSyntaxException ex) {
-            LOG.log(Level.SEVERE, "getEventsFromJson() - Error al intentar obtener un evento desde el JSON", ex.getMessage());
-        }
-
-        if (events == null) {
-            try {
-                events = gson.fromJson(json, Event[].class);
-            } catch (JsonSyntaxException ex) {
-                LOG.log(Level.SEVERE, "getEventsFromJson() - Error al intentar obtener un array de eventos desde el JSON", ex.getMessage());
-            }
-        }
-
-        return events;
-    }
-
-    public static Location getVehicleLocationFromEvent(Event event) {
-        Gson gson = new Gson();
-
-        try {
-            return gson.fromJson(gson.toJson(event.getBody().get("Location")), Location.class);
-        } catch (JsonSyntaxException ex) {
-            LOG.log(Level.SEVERE, "getVehicleLocationFromEvent() - Error al intentar obtener un 'VehicleLocation' de un evento", ex.getMessage());
-        }
-
-        return null;
-    }
     
     public static double distance(double lat1, double lng1, double lat2, double lng2) {
         double p = 0.017453292519943295;

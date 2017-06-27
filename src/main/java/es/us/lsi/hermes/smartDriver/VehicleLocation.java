@@ -2,13 +2,14 @@ package es.us.lsi.hermes.smartDriver;
 
 import java.io.Serializable;
 
-public class Location implements Serializable {
+public class VehicleLocation implements Serializable {
 
+    private String vehicleId;
     private String timeStamp;
     private Double longitude;
-    private Integer stress;
     private Double latitude;
-    private Double speed;
+    private Integer stress;
+    private int speed;
     private Integer accuracy;
 
     public String getTimeStamp() {
@@ -43,11 +44,11 @@ public class Location implements Serializable {
         this.latitude = latitude;
     }
 
-    public Double getSpeed() {
+    public int getSpeed() {
         return speed;
     }
 
-    public void setSpeed(Double speed) {
+    public void setSpeed(int speed) {
         this.speed = speed;
     }
 
@@ -59,4 +60,11 @@ public class Location implements Serializable {
         this.accuracy = accuracy;
     }
 
+    public String getVehicleId() {
+        return vehicleId;
+    }
+
+    public void setVehicleId(String vehicleId) {
+        this.vehicleId = vehicleId;
+    }
 }

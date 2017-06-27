@@ -1,6 +1,6 @@
 package es.us.lsi.hermes.analysis;
 
-import es.us.lsi.hermes.smartDriver.Location;
+import es.us.lsi.hermes.smartDriver.VehicleLocation;
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
@@ -58,10 +58,10 @@ public class Vehicle implements Serializable {
         return lastUpdate;
     }
 
-    public void update(Location vehicleLocation) {
+    public void update(VehicleLocation vehicleLocation) {
         latitude = vehicleLocation.getLatitude();
         longitude = vehicleLocation.getLongitude();
-        speed = vehicleLocation.getSpeed().intValue();
+        speed = vehicleLocation.getSpeed();
         stress = vehicleLocation.getStress();
         lastUpdate = System.currentTimeMillis();
     }

@@ -1,17 +1,13 @@
 package es.us.lsi.hermes.analysis;
 
 import com.google.gson.Gson;
-import es.us.lsi.hermes.Kafka;
+import com.google.gson.JsonSyntaxException;
+import es.us.lsi.hermes.kafka.Kafka;
+import es.us.lsi.hermes.smartDriver.VehicleLocation;
 import es.us.lsi.hermes.util.Util;
-import es.us.lsi.hermes.kafka.Event;
-import es.us.lsi.hermes.kafka.ExtendedEvent;
-import es.us.lsi.hermes.smartDriver.Location;
 import es.us.lsi.hermes.util.Constants;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import kafka.utils.ShutdownableThread;
@@ -38,48 +34,47 @@ public class VehicleAnalyzer extends ShutdownableThread {
         this.kafkaAVProducer = new KafkaProducer<>(Kafka.getKafkaDataAnalyzerProperties());
         this.kafkaSVProducer = new KafkaProducer<>(Kafka.getKafkaDataStorageProducerProperties());
         this.pollTimeout = pollTimeout;
-        this.oblivionTimeoutInMilliseconds = Long.parseLong(Kafka.getKafkaDataStorageConsumerProperties().getProperty("vehicle.oblivion.timeout.s", "60")) * 1000;
+        this.oblivionTimeoutInMilliseconds = Long.parseLong(Kafka.getKafkaDataStorageConsumerProperties()
+                .getProperty("vehicle.oblivion.timeout.s", "60")) * 1000;
         VehicleAnalyzer.analyzedVehicles = new HashMap<>();
         this.kafkaVLConsumer.subscribe(Collections.singletonList(Kafka.TOPIC_VEHICLE_LOCATION));
         this.gson = new Gson();
     }
 
+    /**
+     * The 'consumer' will wait 'pollTimeout' for messages from the topic 'VehicleLocations' to get every message
+     * in real time.
+     */
     @Override
     public void doWork() {
-        // The 'consumer' for each 'VehicleLocations' will poll every 'pollTimeout' milliseconds, to get all the data received by Kafka.
         ConsumerRecords<Long, String> records = kafkaVLConsumer.poll(pollTimeout);
         for (ConsumerRecord<Long, String> record : records) {
-            LOG.log(Level.FINE, "VehicleAnalyzer.doWork() - {0}: {1} [{2}] with offset {3}", new Object[]{record.topic(), Constants.dfISO8601.format(record.timestamp()), record.key(), record.offset()});
+            LOG.log(Level.FINE, "VehicleAnalyzer.doWork() - {0}: {1} [{2}] with offset {3}",
+                    new Object[]{record.topic(), Constants.dfISO8601.format(record.timestamp()), record.key(), record.offset()});
 
             // Get the data since the last poll and process it
-ExtendedEvent event;
+            VehicleLocation vehicleLocation;
             try {
-                event = new Gson().fromJson(record.value(), ExtendedEvent.class);
-                if (event == null) {
-                    LOG.log(Level.SEVERE, "VehicleAnalyzer.doWork() - Null event: {0}", record.value());
-                    continue;
+                vehicleLocation = new Gson().fromJson(record.value(), VehicleLocation.class);
+                if (vehicleLocation == null) {
+                    throw new JsonSyntaxException("Null vehicle");
                 }
             } catch (JsonSyntaxException ex) {
-                LOG.log(Level.SEVERE, "VehicleAnalyzer.doWork() - Invalid 'VehicleLocation' event: {0}", record.value());
+                LOG.log(Level.SEVERE, "VehicleAnalyzer.doWork() - Invalid 'VehicleLocation': {0}", record.value());
                 continue;
             }
 
-            LOG.log(Level.FINE, "VehicleAnalyzer.doWork() - VEHICLE LOCATION {0} with event-id {1}", new Object[]{event.getTimestamp(), event.getEventId()});
-
-            // Get the vehicle location.
-            Location vehicleLocation = Util.getVehicleLocationFromEvent(event);
-            if (vehicleLocation == null) {
-                continue;
-            }
+            LOG.log(Level.FINE, "VehicleAnalyzer.doWork() - VEHICLE LOCATION {0} with vehicle-id {1}",
+                    new Object[]{vehicleLocation.getTimeStamp(), vehicleLocation.getVehicleId()});
 
             // A 'HashMap' will store the vehicles with the most updated information, in essence those who are moving
-            Vehicle analyzedVehicle = analyzedVehicles.get(event.getSourceId());
+            Vehicle analyzedVehicle = analyzedVehicles.get(vehicleLocation.getVehicleId());
 
             // After getting searching for the vehicle with its sourceId, process and store in case it doesn't exists
             if (analyzedVehicle == null) {
-                LOG.log(Level.FINE, "VehicleAnalyzer.doWork() - New vehicle: id={0}", event.getSourceId());
-                analyzedVehicle = new Vehicle(event.getSourceId());
-                analyzedVehicles.put(event.getSourceId(), analyzedVehicle);
+                LOG.log(Level.FINE, "VehicleAnalyzer.doWork() - New vehicle: id={0}", vehicleLocation.getVehicleId());
+                analyzedVehicle = new Vehicle(vehicleLocation.getVehicleId());
+                analyzedVehicles.put(vehicleLocation.getVehicleId(), analyzedVehicle);
             }
 
             // Update the data related to the vehicle's new location and also the active vehicles in the system
@@ -154,7 +149,8 @@ ExtendedEvent event;
             }
 
             // Están en su zona de influencia. Los 2 vehículos se influyen.
-            LOG.log(Level.FINE, "AnalyzeVehicles.run() - Identificadores de los vehículos que se influyen ({0} - {1})", new Object[]{currentVehicle.getId(), otherVehicle.getId()});
+            LOG.log(Level.FINE, "AnalyzeVehicles.run() - Id of surrounding vehicles ({0} - {1})",
+                    new Object[]{currentVehicle.getId(), otherVehicle.getId()});
             currentVehicle.getSurroundingVehicles().add(otherVehicle.getId());
             otherVehicle.getSurroundingVehicles().add(currentVehicle.getId());
         }
