@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import es.us.lsi.hermes.kafka.Kafka;
 import es.us.lsi.hermes.smartDriver.VehicleLocation;
+import es.us.lsi.hermes.topics.SurroundingVehicle;
 import es.us.lsi.hermes.util.Util;
 import es.us.lsi.hermes.util.Constants;
 
@@ -83,13 +84,13 @@ public class VehicleAnalyzer extends ShutdownableThread {
             updateAnalysedVehiclesSurroundings(analyzedVehicle);
 
             // Build and send the Json with the vehicle information
-            String json = gson.toJson(analyzedVehicle);
+            String json = gson.toJson(new SurroundingVehicle(analyzedVehicle));
             kafkaSVProducer.send(new ProducerRecord<Long, String>(Kafka.TOPIC_SURROUNDING_VEHICLES, json));
         }
 
         // TODO - Review - In case of performance issues (CPU) <= Move to top
         // Remove inactive vehicles
-       for (Iterator<Map.Entry<String, Vehicle>> it = analyzedVehicles.entrySet().iterator(); it.hasNext();) {
+        for (Iterator<Map.Entry<String, Vehicle>> it = analyzedVehicles.entrySet().iterator(); it.hasNext();) {
             Map.Entry<String, Vehicle> entry = it.next();
             if (System.currentTimeMillis() - entry.getValue().getLastUpdate() > oblivionTimeoutInMilliseconds) {
                 it.remove();
